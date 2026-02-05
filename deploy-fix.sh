@@ -14,4 +14,8 @@ git commit -m "fix: Corregir errores TypeScript para build en Easypanel
 echo "📤 Pusheando a GitHub..."
 git push origin main
 
-echo "✅ Cambios pusheados. Ahora ve a Easypanel y haz click en 'Deploy' manualmente."
+echo "🚀 Triggeando deploy en Easypanel..."
+curl -X POST http://76.13.126.63:3000/api/deploy/3164660f2b95aadbe651572a03863d06fb0c99b6c3a0c1e3
+
+echo ""
+echo "✅ Deploy iniciado. Revisa el progreso en Easypanel."
