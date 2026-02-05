@@ -1,0 +1,227 @@
+{
+  "name": "Chat Inmobiliario Completo",
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 400],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot",
+        "responseMode": "responseNode"
+      },
+      "typeVersion": 2
+    },
+    {
+      "id": "filter-incoming",
+      "name": "Solo Incoming",
+      "type": "n8n-nodes-base.if",
+      "position": [450, 400],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message_type }}",
+              "operation": "equals",
+              "value2": "incoming"
+            }
+          ]
+        }
+      },
+      "typeVersion": 2.2
+    },
+    {
+      "id": "check-human",
+      "name": "Humano Respondio",
+      "type": "n8n-nodes-base.if",
+      "position": [650, 400],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.conversation.labels }}",
+              "operation": "contains",
+              "value2": "humano"
+            }
+          ]
+        }
+      },
+      "typeVersion": 2.2
+    },
+    {
+      "id": "extract-data",
+      "name": "Extraer Datos",
+      "type": "n8n-nodes-base.set",
+      "position": [850, 300],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "mensaje",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.conversation.id }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "typeVersion": 3.4
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Sofia",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [1050, 300],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Mensaje: {{ $json.mensaje }}",
+        "options": {
+          "systemMessage": "Eres Sofia, asesora inmobiliaria de Angel & Volkers Chile. Personalidad: Amigable, profesional, proactiva. Tareas: 1. Ayudar a buscar propiedades 2. Extraer datos de contacto 3. Clasificar interes del cliente 4. Agendar visitas. Responde en espanol chileno."
+        }
+      },
+      "typeVersion": 1.7
+    },
+    {
+      "id": "llm",
+      "name": "OpenAI GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [1250, 200],
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "typeVersion": 1
+    },
+    {
+      "id": "memory",
+      "name": "Postgres Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "position": [1250, 300],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      },
+      "typeVersion": 1.3
+    },
+    {
+      "id": "respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1450, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { output: $json.output } }}"
+      },
+      "typeVersion": 1.1
+    },
+    {
+      "id": "no-respond",
+      "name": "No Responder Humano",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [850, 500],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { output: 'Un agente humano te atendera pronto' } }}"
+      },
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Solo Incoming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solo Incoming": {
+      "main": [
+        [
+          {
+            "node": "Humano Respondio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Humano Respondio": {
+      "main": [
+        [
+          {
+            "node": "No Responder Humano",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extraer Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos": {
+      "main": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Sofia": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,143 @@
+{
+  "name": "Tool - Capturar Lead",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [400, 300],
+      "id": "trigger",
+      "name": "Execute Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=INSERT INTO \"Lead\" (id, name, email, phone, message, score, status, source, \"createdAt\", \"updatedAt\")\nVALUES (\n  'lead-' || EXTRACT(EPOCH FROM NOW())::TEXT || '-' || substr(md5(random()::text), 1, 8),\n  '{{ $json.nombre }}',\n  '{{ $json.email }}',\n  '{{ $json.telefono }}',\n  '{{ $json.mensaje || \"Contacto desde chat\" }}',\n  {{ ($json.email ? 20 : 0) + ($json.telefono ? 30 : 0) + ($json.nombre ? 10 : 0) }},\n  'new',\n  'chat-widget',\n  NOW(),\n  NOW()\n)\nRETURNING *",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [600, 300],
+      "id": "postgres-insert",
+      "name": "Guardar Lead",
+      "credentials": {
+        "postgres": {
+          "id": "postgres-angel-volkers",
+          "name": "PostgreSQL Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.N8N_WEBHOOK_URL }}/webhook/lead-capture",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "leadId",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "nombre",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "telefono",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "score",
+              "value": "={{ $json.score }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300],
+      "id": "notificar-n8n",
+      "name": "Notificar a n8n"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "success",
+              "value": "true",
+              "type": "boolean"
+            },
+            {
+              "id": "2",
+              "name": "leadId",
+              "value": "={{ $('Guardar Lead').item.json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "message",
+              "value": "Lead capturado exitosamente",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1000, 300],
+      "id": "formatear",
+      "name": "Formatear Resultado"
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Guardar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Lead": {
+      "main": [
+        [
+          {
+            "node": "Notificar a n8n",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar a n8n": {
+      "main": [
+        [
+          {
+            "node": "Formatear Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "instanceId": "tool-capturar-lead"
+  },
+  "tags": []
+}

@@ -5,22 +5,38 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "property-recommender",
-        "responseMode": "responseNode"
+        "responseMode": "responseNode",
+        "options": {}
       },
       "id": "webhook-recommend",
       "name": "Webhook Recomendador",
       "type": "n8n-nodes-base.webhook",
-      "typeVersion": 1,
+      "typeVersion": 1.1,
       "position": [250, 300]
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "jsCode": "const body = $input.item.json.body || $input.item.json;\nconst userQuery = body.userQuery || body.query || '';\n\nif (!userQuery || !userQuery.trim()) {\n  return [{\n    json: {\n      status: 'error',\n      error: 'userQuery es requerido',\n      userQuery: ''\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    userQuery: userQuery.trim()\n  }\n}];"
+      },
+      "id": "validate-input",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "mode": "list",
+          "value": "gpt-4-turbo-preview",
+          "__rl": true
+        },
         "messages": {
           "values": [
             {
               "role": "system",
-              "content": "Extrae los criterios de búsqueda del usuario y genera una consulta SQL para PostgreSQL.\n\nTabla: Property\nColumnas: id, title, description, price, currency, type, operation, bedrooms, bathrooms, area, city, region, status\n\nResponde SOLO con el SQL query, sin explicaciones."
+              "content": "Eres un experto en SQL para PostgreSQL. Genera consultas SQL seguras basadas en criterios de búsqueda de propiedades.\n\nTabla: \"Property\"\nColumnas: id, title, description, price, currency, type, operation, bedrooms, bathrooms, area, city, region, status\n\nReglas:\n- Usa ILIKE para búsquedas de texto\n- Siempre incluye WHERE status = 'available'\n- Limita a 20 resultados con LIMIT\n- Ordena por relevancia\n\nResponde SOLO con el SQL query válido, sin explicaciones ni markdown."
             },
             {
               "role": "user",
@@ -29,14 +45,27 @@
           ]
         },
         "options": {
-          "temperature": 0.2
+          "temperature": 0.1,
+          "maxTokens": 500
         }
       },
       "id": "openai-generate-query",
       "name": "Generar Query SQL",
       "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1,
-      "position": [450, 300]
+      "typeVersion": 1.8,
+      "position": [650, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.item.json;\nlet sqlQuery = input.message?.content || input.text || '';\n\nsqlQuery = sqlQuery.replace(/```sql/gi, '').replace(/```/g, '').trim();\n\nif (!sqlQuery || !sqlQuery.toLowerCase().includes('select')) {\n  sqlQuery = 'SELECT * FROM \"Property\" WHERE status = \'available\' LIMIT 20';\n}\n\nreturn [{\n  json: {\n    sqlQuery,\n    userQuery: $('Validar Entrada').item.json.userQuery\n  }\n}];"
+      },
+      "id": "clean-sql",
+      "name": "Limpiar SQL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -46,45 +75,100 @@
       "id": "postgres-search",
       "name": "Buscar Propiedades",
       "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2,
-      "position": [650, 300]
+      "typeVersion": 2.5,
+      "position": [1050, 300],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "model": "gpt-4-turbo-preview",
+        "jsCode": "const properties = $input.all().map(item => item.json);\nconst userQuery = $('Limpiar SQL').item.json.userQuery;\n\nif (properties.length === 0) {\n  return [{\n    json: {\n      status: 'no_results',\n      properties: [],\n      userQuery,\n      count: 0\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'success',\n    properties,\n    userQuery,\n    count: properties.length\n  }\n}];"
+      },
+      "id": "aggregate-results",
+      "name": "Agregar Resultados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "mode": "list",
+          "value": "gpt-4-turbo-preview",
+          "__rl": true
+        },
         "messages": {
           "values": [
             {
               "role": "system",
-              "content": "Eres un asesor inmobiliario. Presenta estas propiedades de forma atractiva y personalizada según la consulta del usuario.\n\nPROPIEDADES ENCONTRADAS:\n{{ $json.properties }}\n\nCONSULTA ORIGINAL:\n{{ $json.userQuery }}\n\nCrea una respuesta en español chileno, destacando las mejores opciones y por qué se ajustan a lo que busca."
+              "content": "Eres un asesor inmobiliario experto en Chile. Presenta las propiedades de forma atractiva y personalizada.\n\nInstrucciones:\n- Usa lenguaje chileno natural\n- Destaca características únicas\n- Menciona precio, ubicación y características principales\n- Sé entusiasta pero profesional\n- Si hay varias opciones, compáralas brevemente"
+            },
+            {
+              "role": "user",
+              "content": "=Consulta del cliente: {{ $json.userQuery }}\n\nPropiedades encontradas ({{ $json.count }}):  \n{{ JSON.stringify($json.properties, null, 2) }}\n\nCrea una respuesta personalizada recomendando estas propiedades."
             }
           ]
         },
         "options": {
-          "temperature": 0.8,
-          "maxTokens": 800
+          "temperature": 0.7,
+          "maxTokens": 1000
         }
       },
       "id": "openai-format-response",
       "name": "Formatear Recomendaciones",
       "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 1,
-      "position": [850, 300]
+      "typeVersion": 1.8,
+      "position": [1450, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.item.json;\nconst aggregated = $('Agregar Resultados').item.json;\nconst recommendation = input.message?.content || 'Propiedades encontradas';\n\nreturn [{\n  json: {\n    success: true,\n    status: aggregated.status,\n    recommendations: recommendation,\n    properties: aggregated.properties,\n    count: aggregated.count,\n    query: aggregated.userQuery\n  }\n}];"
+      },
+      "id": "format-final-response",
+      "name": "Formatear Respuesta Final",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1650, 300]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: true, recommendations: $json.response, properties: $json.properties, count: $json.properties.length } }}"
+        "responseBody": "={{ $json }}"
       },
       "id": "respond-webhook",
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [1050, 300]
+      "typeVersion": 1.1,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: false, error: 'Error procesando solicitud', details: $json.error || 'Error desconocido' } }}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "id": "respond-error",
+      "name": "Responder Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1850, 500]
     }
   ],
   "connections": {
     "Webhook Recomendador": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
       "main": [
         [
           {
@@ -99,6 +183,17 @@
       "main": [
         [
           {
+            "node": "Limpiar SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar SQL": {
+      "main": [
+        [
+          {
             "node": "Buscar Propiedades",
             "type": "main",
             "index": 0
@@ -107,6 +202,17 @@
       ]
     },
     "Buscar Propiedades": {
+      "main": [
+        [
+          {
+            "node": "Agregar Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar Resultados": {
       "main": [
         [
           {
@@ -121,6 +227,17 @@
       "main": [
         [
           {
+            "node": "Formatear Respuesta Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta Final": {
+      "main": [
+        [
+          {
             "node": "Responder",
             "type": "main",
             "index": 0
@@ -130,5 +247,9 @@
     }
   },
   "active": true,
-  "id": "property-recommender-rag"
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "property-recommender-rag",
+  "tags": []
 }

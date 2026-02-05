@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "n8n-workflows-esp Docs": {
+      "type": "sse",
+      "url": "https://gitmcp.io/DragonJAR/n8n-workflows-esp"
+    }
+  }
+}

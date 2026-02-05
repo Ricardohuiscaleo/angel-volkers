@@ -1,0 +1,496 @@
+{
+  "name": "Chat Inmobiliario - Solo Texto",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-inmobiliario",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [400, 300],
+      "id": "webhook-chat",
+      "name": "Webhook",
+      "webhookId": "chat-inmobiliario-webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "mensaje",
+              "value": "={{ $json.body.message }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "conversation_id",
+              "value": "={{ $json.body.conversationId || $json.body.phone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [600, 300],
+      "id": "extraer-datos",
+      "name": "Extraer Datos"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $json.conversation_id }}",
+        "messageData": "={{ $json.mensaje }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [800, 300],
+      "id": "redis-push",
+      "name": "Redis Push Mensaje",
+      "credentials": {
+        "redis": {
+          "id": "redis-angel-volkers",
+          "name": "Redis Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1000, 300],
+      "id": "wait-10s",
+      "name": "Wait 10s",
+      "webhookId": "wait-webhook-id"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "mensajes",
+        "key": "={{ $('Extraer Datos').item.json.conversation_id }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1200, 300],
+      "id": "redis-get",
+      "name": "Redis Get Mensajes",
+      "credentials": {
+        "redis": {
+          "id": "redis-angel-volkers",
+          "name": "Redis Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.mensajes[0] }}",
+              "rightValue": "={{ $('Extraer Datos').item.json.mensaje }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 300],
+      "id": "verificar-ultimo",
+      "name": "¿Es el último mensaje?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "mensajes_acumulados",
+              "value": "={{ $json.mensajes.slice().reverse().join(' ') }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "conversation_id",
+              "value": "={{ $('Extraer Datos').item.json.conversation_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1600, 200],
+      "id": "unir-mensajes",
+      "name": "Unir Mensajes"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ $('Extraer Datos').item.json.conversation_id }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1800, 200],
+      "id": "redis-delete",
+      "name": "Redis Delete",
+      "credentials": {
+        "redis": {
+          "id": "redis-angel-volkers",
+          "name": "Redis Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "mensaje_usuario",
+              "value": "={{ $json.mensajes_acumulados }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "conversation_id",
+              "value": "={{ $json.conversation_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2000, 200],
+      "id": "preparar-para-ia",
+      "name": "Preparar para IA"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje_usuario }}",
+        "options": {
+          "systemMessage": "Eres Sofía, asesora inmobiliaria virtual de Angel & Völkers Chile.\n\nTu objetivo:\n- Ayudar a encontrar propiedades ideales\n- Capturar información de contacto\n- Agendar visitas\n- Responder consultas sobre propiedades\n\nTono: Profesional, cálido y cercano en español chileno.\n\nUsa las herramientas disponibles para buscar propiedades y capturar leads cuando corresponda."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [2200, 200],
+      "id": "ai-sofia",
+      "name": "AI Sofia",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [2200, 400],
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-angel-volkers",
+          "name": "OpenAI Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Preparar para IA').item.json.conversation_id }}",
+        "tableName": "public.n8n_chat_history",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [2200, 500],
+      "id": "postgres-memory",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "postgres-angel-volkers",
+          "name": "PostgreSQL Angel Volkers"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "buscar_propiedades",
+        "description": "Busca propiedades disponibles según criterios del cliente. Parámetros: tipo (house/apartment/office), operacion (sale/rent), ciudad, precio_min, precio_max, habitaciones",
+        "code": "const { $input } = require('n8n-core');\n\nconst tipo = $input.item.json.tipo;\nconst operacion = $input.item.json.operacion;\nconst ciudad = $input.item.json.ciudad;\nconst precio_min = $input.item.json.precio_min;\nconst precio_max = $input.item.json.precio_max;\nconst habitaciones = $input.item.json.habitaciones;\n\nlet query = `SELECT id, title, type, operation, price, city, bedrooms, bathrooms, area, images FROM \"Property\" WHERE status = 'available'`;\n\nif (tipo) query += ` AND type = '${tipo}'`;\nif (operacion) query += ` AND operation = '${operacion}'`;\nif (ciudad) query += ` AND city ILIKE '%${ciudad}%'`;\nif (precio_min) query += ` AND price >= ${precio_min}`;\nif (precio_max) query += ` AND price <= ${precio_max}`;\nif (habitaciones) query += ` AND bedrooms >= ${habitaciones}`;\n\nquery += ` ORDER BY \"createdAt\" DESC LIMIT 5`;\n\nconst propiedades = await $input.item.context.getNode('postgres').execute(query);\n\nreturn { propiedades, total: propiedades.length };",
+        "language": "javaScript"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [2400, 300],
+      "id": "tool-buscar",
+      "name": "Tool Buscar Propiedades"
+    },
+    {
+      "parameters": {
+        "name": "capturar_lead",
+        "description": "Captura información de contacto del cliente interesado. Parámetros requeridos: nombre, email, telefono (opcional), mensaje (opcional)",
+        "code": "const { $input } = require('n8n-core');\n\nconst nombre = $input.item.json.nombre;\nconst email = $input.item.json.email;\nconst telefono = $input.item.json.telefono || '';\nconst mensaje = $input.item.json.mensaje || 'Contacto desde chat';\n\nconst score = (email ? 20 : 0) + (telefono ? 30 : 0) + (nombre ? 10 : 0) + (mensaje.length > 20 ? 40 : 0);\n\nconst leadId = `lead-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;\n\nconst query = `INSERT INTO \"Lead\" (id, name, email, phone, message, score, status, source, \"createdAt\", \"updatedAt\") VALUES ('${leadId}', '${nombre}', '${email}', '${telefono}', '${mensaje}', ${score}, 'new', 'chat-widget', NOW(), NOW()) RETURNING *`;\n\nconst lead = await $input.item.context.getNode('postgres').execute(query);\n\nreturn { success: true, leadId, score, message: 'Lead capturado exitosamente' };",
+        "language": "javaScript"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.1,
+      "position": [2400, 400],
+      "id": "tool-lead",
+      "name": "Tool Capturar Lead"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2600, 200],
+      "id": "formatear-respuesta",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"response\": $json.response, \"conversationId\": $('Preparar para IA').item.json.conversation_id } }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2800, 200],
+      "id": "responder",
+      "name": "Responder"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1600, 400],
+      "id": "esperar-mas-mensajes",
+      "name": "Esperar más mensajes"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos": {
+      "main": [
+        [
+          {
+            "node": "Redis Push Mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Push Mensaje": {
+      "main": [
+        [
+          {
+            "node": "Wait 10s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 10s": {
+      "main": [
+        [
+          {
+            "node": "Redis Get Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Get Mensajes": {
+      "main": [
+        [
+          {
+            "node": "¿Es el último mensaje?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es el último mensaje?": {
+      "main": [
+        [
+          {
+            "node": "Unir Mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Esperar más mensajes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Mensajes": {
+      "main": [
+        [
+          {
+            "node": "Redis Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Delete": {
+      "main": [
+        [
+          {
+            "node": "Preparar para IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar para IA": {
+      "main": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Sofia": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Buscar Propiedades": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tool Capturar Lead": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "",
+  "meta": {
+    "instanceId": "angel-volkers-chat"
+  },
+  "tags": []
+}
