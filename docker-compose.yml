@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # Aplicación principal
+  app:
+    build: .
+    container_name: angel-volkers-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://angelvolkers:${DB_PASSWORD}@postgres:5432/angelvolkers
+      - REDIS_URL=redis://redis:6379
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - CHATWOOT_URL=${CHATWOOT_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    networks:
+      - angelvolkers-network
+
+  # PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: angel-volkers-db
+    environment:
+      - POSTGRES_USER=angelvolkers
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=angelvolkers
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - angelvolkers-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: angel-volkers-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - angelvolkers-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  angelvolkers-network:
+    driver: bridge
