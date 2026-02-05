@@ -1,4 +1,5 @@
 FROM node:20-alpine AS base
+# Build version: 2026-02-05-v2
 
 # Instalar dependencias solo cuando sea necesario
 FROM base AS deps
