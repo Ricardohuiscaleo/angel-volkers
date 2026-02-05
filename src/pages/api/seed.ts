@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { prisma } from '../../../lib/db';
+import { prisma } from '../../lib/db';
 
 const mockProperties = [
   {
@@ -112,10 +112,10 @@ export const POST: APIRoute = async () => {
       status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
+  } catch (error: any) {
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error?.message || 'Error desconocido'
     }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
