@@ -1,12 +1,13 @@
 ---
 // src/layouts/Layout.astro
+import ChatWidget from '../../ChatWidget';
+
 interface Props {
   title: string;
   description?: string;
 }
 
 const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.props;
-const chatwootToken = import.meta.env.PUBLIC_CHATWOOT_WEBSITE_TOKEN;
 ---
 
 <!doctype html>
@@ -33,6 +34,8 @@ const chatwootToken = import.meta.env.PUBLIC_CHATWOOT_WEBSITE_TOKEN;
     <main>
       <slot />
     </main>
+
+    <ChatWidget client:load />
 
     <footer class="bg-gray-900 text-white py-12 mt-20">
       <div class="container mx-auto px-4">
@@ -68,25 +71,6 @@ const chatwootToken = import.meta.env.PUBLIC_CHATWOOT_WEBSITE_TOKEN;
         </div>
       </div>
     </footer>
-
-    {chatwootToken && (
-      <script is:inline define:vars={{ chatwootToken }}>
-        (function(d,t) {
-          var BASE_URL="https://chatwoot.tudominio.com";
-          var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-          g.src=BASE_URL+"/packs/js/sdk.js";
-          g.defer = true;
-          g.async = true;
-          s.parentNode.insertBefore(g,s);
-          g.onload=function(){
-            window.chatwootSDK.run({
-              websiteToken: chatwootToken,
-              baseUrl: BASE_URL
-            })
-          }
-        })(document,"script");
-      </script>
-    )}
   </body>
 </html>
 
