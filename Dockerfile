@@ -5,16 +5,16 @@ FROM base AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production --ignore-scripts || npm install --only=production
+COPY package.json ./
+RUN npm install --only=production
 
 # Instalar todas las dependencias (incluyendo dev) para el build
 FROM base AS deps-full
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci --ignore-scripts || npm install
+COPY package.json ./
+RUN npm install
 
 # Build de la aplicación
 FROM base AS builder

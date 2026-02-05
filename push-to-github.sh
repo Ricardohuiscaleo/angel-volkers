@@ -1,15 +1,9 @@
 #!/bin/sh
 
-echo "🚀 Preparando push a GitHub..."
+echo "🚀 Push rápido..."
 
 git add .
-git commit -m "fix: Corregir Dockerfile para build con Prisma
-
-- Agregar OpenSSL requerido por Prisma
-- Organizar estructura de archivos automáticamente
-- Separar dependencias de producción y desarrollo
-- Agregar .dockerignore para optimizar build"
+git commit -m "fix: Simplificar Dockerfile sin package-lock"
 git push origin main
 
-echo "✅ Push completado!"
-echo "Ahora rebuild en Easypanel"
+echo "✅ Listo. Rebuild en Easypanel"
