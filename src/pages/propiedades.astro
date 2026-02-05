@@ -1,13 +1,25 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { prisma } from '../lib/db';
-import { formatPrice } from '../lib/utils';
 
-const properties = await prisma.property.findMany({
-  where: { status: 'available' },
-  orderBy: { createdAt: 'desc' },
-  take: 12
-});
+let properties: any[] = [];
+try {
+  properties = await prisma.property.findMany({
+    where: { status: 'available' },
+    orderBy: { createdAt: 'desc' },
+    take: 12
+  });
+} catch (error) {
+  console.error('Error cargando propiedades:', error);
+}
+
+function formatPrice(price: number, currency: string = 'CLP'): string {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: 0,
+  }).format(price);
+}
 ---
 
 <Layout title="Propiedades">
@@ -22,13 +34,13 @@ const properties = await prisma.property.findMany({
         </div>
       ) : (
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {properties.map((property) => (
+          {properties.map((p) => (
             <article class="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-xl">
-              <a href={`/propiedades/${property.id}`} class="block">
+              <a href={`/propiedades/${p.id}`} class="block">
                 <div class="relative aspect-[3/2] overflow-hidden">
                   <img
-                    src={property.images[0] || '/placeholder.jpg'}
-                    alt={property.title}
+                    src={p.images[0] || '/placeholder.jpg'}
+                    alt={p.title}
                     class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
@@ -36,33 +48,21 @@ const properties = await prisma.property.findMany({
                 
                 <div class="p-4">
                   <p class="text-sm text-gray-600 mb-1">
-                    {property.city}, {property.region}, Chile
+                    {p.city}, {p.region}, Chile
                   </p>
                   
-                  <h2 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {property.title}
+                  <h2 class="text-lg font-semibold text-gray-900 mb-2">
+                    {p.title}
                   </h2>
                   
                   <p class="text-2xl font-bold text-blue-600 mb-3">
-                    {formatPrice(property.price, property.currency)}
+                    {formatPrice(p.price, p.currency)}
                   </p>
                   
                   <ul class="flex flex-wrap gap-3 text-sm text-gray-600">
-                    {property.bedrooms && property.bedrooms > 0 && (
-                      <li class="flex items-center gap-1">
-                        <span>{property.bedrooms} Dorm.</span>
-                      </li>
-                    )}
-                    
-                    {property.bathrooms && property.bathrooms > 0 && (
-                      <li class="flex items-center gap-1">
-                        <span>{property.bathrooms} Baños</span>
-                      </li>
-                    )}
-                    
-                    <li class="flex items-center gap-1">
-                      <span>{property.area} m²</span>
-                    </li>
+                    {p.bedrooms > 0 && <li>{p.bedrooms} Dorm.</li>}
+                    {p.bathrooms > 0 && <li>{p.bathrooms} Baños</li>}
+                    <li>{p.area} m²</li>
                   </ul>
                 </div>
               </a>
