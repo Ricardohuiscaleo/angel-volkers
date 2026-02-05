@@ -43,6 +43,14 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 
+# Script de inicio
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'npx prisma db push --skip-generate || true' >> /app/start.sh && \
+    echo 'node ./dist/server/entry.mjs' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+RUN chown -R astro:nodejs /app
+
 USER astro
 
 EXPOSE 3000
@@ -50,4 +58,4 @@ EXPOSE 3000
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-CMD ["node", "./dist/server/entry.mjs"]
+CMD ["/app/start.sh"]
