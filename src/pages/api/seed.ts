@@ -99,7 +99,7 @@ export const POST: APIRoute = async () => {
     for (const property of mockProperties) {
       await prisma.property.create({
         data: {
-          id: `prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          id: `prop-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
           ...property
         }
       });
