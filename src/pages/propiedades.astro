@@ -1,7 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import PropertyCard from '../../PropertyCard.tsx';
 import { prisma } from '../lib/db';
+import { formatPrice } from '../lib/utils';
 
 const properties = await prisma.property.findMany({
   where: { status: 'available' },
@@ -23,20 +23,50 @@ const properties = await prisma.property.findMany({
       ) : (
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {properties.map((property) => (
-            <PropertyCard
-              key={property.id}
-              id={property.id}
-              title={property.title}
-              price={property.price}
-              currency={property.currency}
-              city={property.city}
-              region={property.region}
-              bedrooms={property.bedrooms}
-              bathrooms={property.bathrooms}
-              area={property.area}
-              images={property.images}
-              client:load
-            />
+            <article class="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-xl">
+              <a href={`/propiedades/${property.id}`} class="block">
+                <div class="relative aspect-[3/2] overflow-hidden">
+                  <img
+                    src={property.images[0] || '/placeholder.jpg'}
+                    alt={property.title}
+                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                
+                <div class="p-4">
+                  <p class="text-sm text-gray-600 mb-1">
+                    {property.city}, {property.region}, Chile
+                  </p>
+                  
+                  <h2 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {property.title}
+                  </h2>
+                  
+                  <p class="text-2xl font-bold text-blue-600 mb-3">
+                    {formatPrice(property.price, property.currency)}
+                  </p>
+                  
+                  <ul class="flex flex-wrap gap-3 text-sm text-gray-600">
+                    {property.bedrooms && property.bedrooms > 0 && (
+                      <li class="flex items-center gap-1">
+                        <span>{property.bedrooms} Dorm.</span>
+                      </li>
+                    )}
+                    
+                    {property.bathrooms && property.bathrooms > 0 && (
+                      <li class="flex items-center gap-1">
+                        <span>{property.bathrooms} Baños</span>
+                      </li>
+                    )}
+                    
+                    <li class="flex items-center gap-1">
+                      <span>{property.area} m²</span>
+                    </li>
+                  </ul>
+                </div>
+              </a>
+            </article>
           ))}
         </div>
       )}
