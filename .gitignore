@@ -31,3 +31,8 @@ prisma/migrations/
 *.swp
 *.swo
 *~
+
+# Scripts de desarrollo
+scrape-engelvolkers.ts
+seed-properties.ts
+PropertyCard.tsx
