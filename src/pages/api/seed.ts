@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { prisma } from '../../lib/db';
 
+export const prerender = false;
+
 const mockProperties = [
   {
     title: 'BODEGA EN SECTOR INDUSTRIAL',

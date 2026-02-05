@@ -2,6 +2,8 @@
 import Layout from '../layouts/Layout.astro';
 import { prisma } from '../lib/db';
 
+export const prerender = false;
+
 let properties: any[] = [];
 try {
   properties = await prisma.property.findMany({
