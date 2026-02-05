@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import PropertyCard from '../../PropertyCard';
+import PropertyCard from '../../PropertyCard.tsx';
 import { prisma } from '../lib/db';
 
 const properties = await prisma.property.findMany({
