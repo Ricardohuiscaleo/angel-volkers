@@ -36,8 +36,8 @@ RUN mkdir -p src/lib src/layouts src/pages/api/webhooks src/styles && \
 # Generar Prisma Client
 RUN npx prisma generate
 
-# Build de Astro (sin check para evitar errores de tipos)
-RUN npm run build || astro build
+# Build de Astro
+RUN npm run build
 
 # Imagen de producción
 FROM base AS runner
