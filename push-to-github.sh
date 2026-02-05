@@ -1,5 +1,4 @@
 #!/bin/sh
 git add .
-git commit -m "fix: Redis lazy connect para build"
+git commit -m "refactor: Simplificar Dockerfile con estructura correcta"
 git push origin main
-echo "✅ Push OK"

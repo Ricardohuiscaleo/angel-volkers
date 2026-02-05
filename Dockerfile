@@ -23,16 +23,6 @@ WORKDIR /app
 COPY --from=deps-full /app/node_modules ./node_modules
 COPY . .
 
-# Organizar estructura de archivos
-RUN mkdir -p src/lib src/layouts src/pages/api/webhooks src/styles && \
-    for file in src-lib-*.ts; do [ -f "$file" ] && mv "$file" "src/lib/$(echo $file | sed 's/src-lib-//')"; done && \
-    for file in src-layouts-*.astro; do [ -f "$file" ] && mv "$file" "src/layouts/$(echo $file | sed 's/src-layouts-//')"; done && \
-    [ -f "src-pages-index.astro" ] && mv src-pages-index.astro src/pages/index.astro && \
-    [ -f "src-pages-api-properties.ts" ] && mv src-pages-api-properties.ts src/pages/api/properties.ts && \
-    [ -f "src-pages-api-leads.ts" ] && mv src-pages-api-leads.ts src/pages/api/leads.ts && \
-    [ -f "src-pages-api-webhooks-chatwoot.ts" ] && mv src-pages-api-webhooks-chatwoot.ts src/pages/api/webhooks/chatwoot.ts && \
-    [ -f "src-styles-globals.css" ] && mv src-styles-globals.css src/styles/globals.css
-
 # Generar Prisma Client
 RUN npx prisma generate
 
