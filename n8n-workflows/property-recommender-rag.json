@@ -1,0 +1,134 @@
+{
+  "name": "Recomendador de Propiedades RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "property-recommender",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-recommend",
+      "name": "Webhook Recomendador",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Extrae los criterios de búsqueda del usuario y genera una consulta SQL para PostgreSQL.\n\nTabla: Property\nColumnas: id, title, description, price, currency, type, operation, bedrooms, bathrooms, area, city, region, status\n\nResponde SOLO con el SQL query, sin explicaciones."
+            },
+            {
+              "role": "user",
+              "content": "={{ $json.userQuery }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "openai-generate-query",
+      "name": "Generar Query SQL",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "={{ $json.sqlQuery }}"
+      },
+      "id": "postgres-search",
+      "name": "Buscar Propiedades",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Eres un asesor inmobiliario. Presenta estas propiedades de forma atractiva y personalizada según la consulta del usuario.\n\nPROPIEDADES ENCONTRADAS:\n{{ $json.properties }}\n\nCONSULTA ORIGINAL:\n{{ $json.userQuery }}\n\nCrea una respuesta en español chileno, destacando las mejores opciones y por qué se ajustan a lo que busca."
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.8,
+          "maxTokens": 800
+        }
+      },
+      "id": "openai-format-response",
+      "name": "Formatear Recomendaciones",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, recommendations: $json.response, properties: $json.properties, count: $json.properties.length } }}"
+      },
+      "id": "respond-webhook",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Recomendador": {
+      "main": [
+        [
+          {
+            "node": "Generar Query SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generar Query SQL": {
+      "main": [
+        [
+          {
+            "node": "Buscar Propiedades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Propiedades": {
+      "main": [
+        [
+          {
+            "node": "Formatear Recomendaciones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Recomendaciones": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "id": "property-recommender-rag"
+}

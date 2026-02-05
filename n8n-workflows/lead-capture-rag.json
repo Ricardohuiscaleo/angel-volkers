@@ -1,0 +1,180 @@
+{
+  "name": "Lead Capture Inteligente RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture-rag",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-lead",
+      "name": "Webhook Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4-turbo-preview",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "Analiza el siguiente mensaje de un lead inmobiliario y extrae:\n1. Intención (compra/arriendo/consulta/visita)\n2. Tipo de propiedad (casa/departamento/oficina/terreno)\n3. Ubicación preferida\n4. Rango de precio (bajo/medio/alto)\n5. Urgencia (baja/media/alta)\n6. Score de calidad del lead (0-100)\n\nResponde SOLO en formato JSON."
+            },
+            {
+              "role": "user",
+              "content": "Nombre: {{ $json.name }}\nEmail: {{ $json.email }}\nTeléfono: {{ $json.phone }}\nMensaje: {{ $json.message }}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.3,
+          "responseFormat": "json_object"
+        }
+      },
+      "id": "openai-analyze",
+      "name": "Analizar Lead con IA",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"Lead\" (id, name, email, phone, message, source, status, score, metadata, \"createdAt\", \"updatedAt\") VALUES (gen_random_uuid(), '{{ $json.name }}', '{{ $json.email }}', '{{ $json.phone }}', '{{ $json.message }}', 'website', 'new', {{ $json.analysis.score }}, '{{ $json.analysis }}'::jsonb, NOW(), NOW()) RETURNING *"
+      },
+      "id": "postgres-save-lead",
+      "name": "Guardar Lead",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.analysis.score }}",
+              "operation": "largerEqual",
+              "value2": 70
+            }
+          ]
+        }
+      },
+      "id": "if-high-quality",
+      "name": "¿Lead de Alta Calidad?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.CHATWOOT_URL }}/api/v1/accounts/={{ $env.CHATWOOT_ACCOUNT_ID }}/contacts",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "phone_number",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "custom_attributes",
+              "value": "={{ $json.analysis }}"
+            }
+          ]
+        }
+      },
+      "id": "chatwoot-create-contact",
+      "name": "Crear Contacto Prioritario",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, leadId: $json.id, score: $json.analysis.score, priority: $json.analysis.score >= 70 ? 'high' : 'normal' } }}"
+      },
+      "id": "respond-webhook",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Lead": {
+      "main": [
+        [
+          {
+            "node": "Analizar Lead con IA",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar Lead con IA": {
+      "main": [
+        [
+          {
+            "node": "Guardar Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Lead": {
+      "main": [
+        [
+          {
+            "node": "¿Lead de Alta Calidad?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Lead de Alta Calidad?": {
+      "main": [
+        [
+          {
+            "node": "Crear Contacto Prioritario",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Contacto Prioritario": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "id": "lead-capture-rag"
+}

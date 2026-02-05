@@ -1,161 +1,173 @@
-# 🤖 Workflows de n8n
+# 🤖 Workflows de n8n con RAG
 
-## Workflows Incluidos
+## Workflows Implementados
 
-### 1. Lead Capture & Qualification (`lead-capture.json`)
-**Descripción**: Captura y califica leads automáticamente
+### 1. **Chatbot Inmobiliario RAG** (`chatbot-rag.json`)
+**Webhook**: `/webhook/chatwoot-rag`
 
-**Trigger**: Webhook POST `/webhook/lead-capture`
+**Funcionalidad**:
+- Recibe mensajes de Chatwoot
+- Consulta propiedades disponibles en la BD
+- Usa GPT-4 con RAG para responder con contexto
+- Envía respuesta automática a Chatwoot
 
-**Flujo**:
-1. Recibe datos del lead
-2. Evalúa score de calidad
-3. Si score >= 70: Envía notificación prioritaria a agentes
-4. Envía email de confirmación al lead
-5. Registra en CRM
-
-**Variables necesarias**:
-- `SMTP_HOST`
-- `SMTP_USER`
-- `SMTP_PASS`
-
----
-
-### 2. Chatwoot AI Assistant (`chatwoot-ai.json`)
-**Descripción**: Asistente con IA para responder consultas en Chatwoot
-
-**Trigger**: Webhook POST `/webhook/chatwoot-message`
-
-**Flujo**:
-1. Recibe mensaje de Chatwoot
-2. Procesa con OpenAI GPT-4
-3. Genera respuesta inteligente
-4. Detecta intención de agendar visita
-5. Si es visita: Asigna a agente humano
-6. Envía respuesta a Chatwoot
-
-**Variables necesarias**:
-- `OPENAI_API_KEY`
-- `CHATWOOT_URL`
-- `CHATWOOT_API_KEY`
-- `CHATWOOT_ACCOUNT_ID`
-
----
-
-### 3. Property Alerts (Próximamente)
-**Descripción**: Notifica a usuarios cuando hay propiedades que coinciden con sus búsquedas guardadas
-
----
-
-### 4. Visit Management (Próximamente)
-**Descripción**: Gestiona agendamiento de visitas con recordatorios automáticos
-
----
-
-## Cómo Importar en n8n
-
-### Opción 1: Interfaz Web
-1. Ir a n8n dashboard
-2. Click en "Workflows" → "Import from File"
-3. Seleccionar archivo JSON
-4. Configurar credenciales
-5. Activar workflow
-
-### Opción 2: CLI
+**Ejemplo de uso**:
 ```bash
-# Copiar archivos al contenedor de n8n
-docker cp lead-capture.json n8n:/home/node/.n8n/workflows/
-
-# Reiniciar n8n
-docker restart n8n
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/chatwoot-rag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conversation_id": "123",
+    "message": "Busco un departamento en Providencia de 2 dormitorios"
+  }'
 ```
 
-## Configuración de Credenciales
+---
 
-### OpenAI
-1. Settings → Credentials → Add Credential
-2. Tipo: OpenAI
-3. API Key: `sk-...`
+### 2. **Lead Capture Inteligente RAG** (`lead-capture-rag.json`)
+**Webhook**: `/webhook/lead-capture-rag`
 
-### Chatwoot
-1. Settings → Credentials → Add Credential
-2. Tipo: HTTP Header Auth
-3. Name: `api_access_token`
-4. Value: Tu API key de Chatwoot
+**Funcionalidad**:
+- Analiza el mensaje del lead con IA
+- Extrae intención, tipo de propiedad, ubicación, presupuesto
+- Calcula score de calidad (0-100)
+- Guarda en BD con metadata enriquecida
+- Si score >= 70: Crea contacto prioritario en Chatwoot
 
-### SMTP
-1. Settings → Credentials → Add Credential
-2. Tipo: SMTP
-3. Configurar host, puerto, usuario y contraseña
-
-## Testing de Webhooks
-
-### Test Lead Capture
+**Ejemplo de uso**:
 ```bash
-curl -X POST https://n8n.tudominio.com/webhook/lead-capture \
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/lead-capture-rag \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Juan Pérez",
     "email": "juan@example.com",
     "phone": "+56912345678",
-    "message": "Interesado en departamento",
-    "score": 80
+    "message": "Necesito urgente una casa en Las Condes, presupuesto 500M"
   }'
 ```
 
-### Test Chatwoot AI
+---
+
+### 3. **Recomendador de Propiedades RAG** (`property-recommender-rag.json`)
+**Webhook**: `/webhook/property-recommender`
+
+**Funcionalidad**:
+- Usuario describe lo que busca en lenguaje natural
+- IA genera query SQL optimizado
+- Busca en BD las mejores coincidencias
+- Formatea recomendaciones personalizadas
+
+**Ejemplo de uso**:
 ```bash
-curl -X POST https://n8n.tudominio.com/webhook/chatwoot-message \
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/property-recommender \
   -H "Content-Type: application/json" \
   -d '{
-    "conversationId": "123",
-    "contactId": "456",
-    "message": "Quiero agendar una visita"
+    "userQuery": "Quiero algo cerca del metro, máximo 200 millones, que tenga estacionamiento"
   }'
 ```
 
-## Monitoreo
+---
 
-### Ver Ejecuciones
-1. Ir a workflow
-2. Tab "Executions"
-3. Ver logs y resultados
+## 📥 Cómo Importar en n8n
 
-### Alertas de Errores
-Configurar en Settings → Workflows → Error Workflow
-- Enviar email cuando falla
-- Notificar en Slack
-- Registrar en logs
+### Opción 1: Interfaz Web
+1. Ir a n8n: https://proyecto1-n8n.dj3bvg.easypanel.host
+2. Click en **Workflows** → **Import from File**
+3. Seleccionar cada archivo JSON
+4. Configurar credenciales (ver abajo)
+5. Activar workflow
 
-## Mejores Prácticas
+### Opción 2: API (Automático)
+```bash
+for file in n8n-workflows/*.json; do
+  curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/api/v1/workflows \
+    -H "X-N8N-API-KEY: $N8N_API_KEY" \
+    -H "Content-Type: application/json" \
+    -d @"$file"
+done
+```
 
-1. **Siempre usar Try-Catch**: Envolver nodos críticos
-2. **Timeouts**: Configurar timeouts apropiados
-3. **Rate Limiting**: Controlar frecuencia de ejecuciones
-4. **Logs**: Agregar nodos de log para debugging
-5. **Testing**: Probar en ambiente de desarrollo primero
+---
 
-## Troubleshooting
+## 🔑 Configuración de Credenciales
 
-### Webhook no responde
-- Verificar que el workflow esté activo
-- Revisar URL del webhook
-- Verificar firewall/proxy
+### 1. PostgreSQL
+- **Name**: `PostgreSQL Angel Volkers`
+- **Host**: `agenterag-com_db-angel-volkers`
+- **Port**: `5432`
+- **Database**: `DB_Angel-volkers`
+- **User**: `postgres`
+- **Password**: (desde Easypanel)
 
-### Error de credenciales
-- Verificar que las credenciales estén configuradas
-- Revisar permisos de API keys
-- Verificar expiración de tokens
+### 2. OpenAI
+- **Name**: `OpenAI`
+- **API Key**: Tu OpenAI API Key
 
-### OpenAI timeout
-- Aumentar timeout del nodo
-- Usar modelo más rápido (gpt-3.5-turbo)
-- Implementar retry logic
+### 3. Chatwoot API
+- **Name**: `Chatwoot API`
+- **Header Name**: `api_access_token`
+- **Header Value**: Tu Chatwoot API Key
 
-## Próximas Automatizaciones
+---
 
-- [ ] Sincronización con portales inmobiliarios
-- [ ] Reportes automáticos semanales
-- [ ] Seguimiento de leads fríos
-- [ ] Análisis de sentimiento en conversaciones
-- [ ] Predicción de conversión con ML
+## 🧪 Testing
+
+### Test Chatbot RAG
+```bash
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/chatwoot-rag \
+  -d '{"conversation_id":"test","message":"¿Qué propiedades tienen?"}'
+```
+
+### Test Lead Capture
+```bash
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/lead-capture-rag \
+  -d '{"name":"Test","email":"test@test.com","phone":"+56900000000","message":"Busco departamento"}'
+```
+
+### Test Recomendador
+```bash
+curl -X POST https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/property-recommender \
+  -d '{"userQuery":"Departamento 2 dormitorios Santiago centro"}'
+```
+
+---
+
+## 🔗 Integración con la App
+
+En tu aplicación, usa el helper de n8n:
+
+```typescript
+import { sendToN8N } from './src/lib/n8n';
+
+// Capturar lead con análisis IA
+await sendToN8N('lead-capture-rag', {
+  name: formData.name,
+  email: formData.email,
+  phone: formData.phone,
+  message: formData.message
+});
+
+// Obtener recomendaciones
+const recommendations = await sendToN8N('property-recommender', {
+  userQuery: 'Casa en Las Condes con jardín'
+});
+```
+
+---
+
+## 📊 Ventajas del RAG
+
+✅ **Respuestas contextualizadas**: Usa datos reales de tu BD  
+✅ **Siempre actualizado**: No necesita reentrenamiento  
+✅ **Más preciso**: Combina IA con datos estructurados  
+✅ **Escalable**: Funciona con miles de propiedades  
+✅ **Multilingüe**: Entiende español chileno y formal  
+
+---
+
+## 🚀 Próximas Mejoras
+
+- [ ] Vector embeddings para búsqueda semántica
+- [ ] Historial de conversaciones
+- [ ] Análisis de sentimiento
+- [ ] Predicción de conversión
+- [ ] A/B testing de respuestas
