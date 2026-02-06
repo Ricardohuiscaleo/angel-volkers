@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro';
 import { sendToN8N, n8nWebhooks } from '../../../lib/n8n';
 import { prisma } from '../../../lib/db';
 
+export const prerender = false;
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const data = await request.json();
