@@ -2,7 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import { prisma } from '../lib/db';
 
-let properties = [];
+let properties: any[] = [];
 try {
   properties = await prisma.property.findMany({
     orderBy: { createdAt: 'desc' },
