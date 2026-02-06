@@ -42,6 +42,9 @@ export default function ChatWidget() {
         setChatwootReady(true);
         clearInterval(checkChatwoot);
         
+        // Abrir widget oculto para inicializar conversación
+        window.$chatwoot.toggle('open');
+        
         // Escuchar mensajes entrantes de Chatwoot
         window.$chatwoot.on('message:received', (data: any) => {
           if (data.message_type === 'outgoing') {
@@ -104,7 +107,7 @@ export default function ChatWidget() {
   }, [isOpen]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !chatwootReady) return;
+    if (!input.trim()) return;
     
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
@@ -113,7 +116,9 @@ export default function ChatWidget() {
 
     // Enviar mensaje a través del SDK de Chatwoot
     try {
-      window.$chatwoot?.sendMessage(userMsg);
+      if (window.$chatwoot) {
+        window.$chatwoot.sendMessage(userMsg);
+      }
     } catch (error) {
       console.error('Error enviando mensaje:', error);
       setIsTyping(false);
