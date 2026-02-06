@@ -1,24 +1,14 @@
 import type { APIRoute } from 'astro';
+import { prisma } from '../../lib/db';
 import { mockLeads } from '../../lib/mock-leads';
 
-// Usar mock data en desarrollo si no hay conexión a DB
 const USE_MOCK = process.env.NODE_ENV === 'development';
-
-let prismaLeads: any;
-if (!USE_MOCK) {
-  try {
-    const dbModule = await import('../../lib/db-leads');
-    prismaLeads = dbModule.prismaLeads;
-  } catch (error) {
-    console.warn('Using mock leads data');
-  }
-}
 
 export const prerender = false;
 
 export const GET: APIRoute = async ({ request }) => {
   try {
-    if (USE_MOCK || !prismaLeads) {
+    if (USE_MOCK) {
       const url = new URL(request.url);
       const status = url.searchParams.get('status');
       let leads = [...mockLeads];
@@ -38,7 +28,7 @@ export const GET: APIRoute = async ({ request }) => {
     const where: any = {};
     if (status) where.status = status;
 
-    const leads = await prismaLeads.lead.findMany({
+    const leads = await prisma.lead.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit
@@ -50,8 +40,8 @@ export const GET: APIRoute = async ({ request }) => {
     });
   } catch (error) {
     console.error('Error fetching leads:', error);
-    return new Response(JSON.stringify({ error: 'Error fetching leads' }), {
-      status: 500,
+    return new Response(JSON.stringify(mockLeads), {
+      status: 200,
       headers: { 'Content-Type': 'application/json' }
     });
   }

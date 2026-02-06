@@ -26,7 +26,6 @@ COPY . .
 
 # Generar Prisma Client
 RUN npx prisma generate
-RUN npx prisma generate --schema=./prisma/schema-leads.prisma || true
 
 # Build de Astro
 RUN npm run build
