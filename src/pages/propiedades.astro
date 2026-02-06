@@ -90,7 +90,7 @@ function formatPrice(price: number, currency: string = 'CLP'): string {
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {properties.map((p) => (
               <article class="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-xl">
-                <a href={`/propiedades/${p.id}`} class="block">
+                <a href={`/propiedad/${p.id}`} class="block">
                   <div class="relative aspect-[3/2] overflow-hidden">
                     <img
                       src={p.images[0] || '/placeholder.jpg'}
