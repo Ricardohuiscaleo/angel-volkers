@@ -203,7 +203,7 @@ try {
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Propiedad</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciudad</th>
@@ -213,9 +213,21 @@ try {
               <tbody class="bg-white divide-y divide-gray-200">
                 {properties.map(prop => (
                   <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{prop.title}</td>
+                    <td class="px-6 py-4">
+                      <div class="flex items-center gap-3">
+                        <img 
+                          src={prop.images && prop.images.length > 0 ? prop.images[0] : 'https://via.placeholder.com/80x60?text=No+Image'} 
+                          alt={prop.title}
+                          class="w-20 h-14 object-cover rounded-lg shadow-sm"
+                        />
+                        <div>
+                          <p class="text-sm font-medium text-gray-900">{prop.title}</p>
+                          <p class="text-xs text-gray-500">{prop.bedrooms} hab • {prop.bathrooms} baños • {prop.area}m²</p>
+                        </div>
+                      </div>
+                    </td>
                     <td class="px-6 py-4 text-sm text-gray-500">{prop.type}</td>
-                    <td class="px-6 py-4 text-sm text-gray-900">${prop.price.toLocaleString('es-CL')}</td>
+                    <td class="px-6 py-4 text-sm font-semibold text-gray-900">${prop.price.toLocaleString('es-CL')}</td>
                     <td class="px-6 py-4 text-sm text-gray-500">{prop.city}</td>
                     <td class="px-6 py-4">
                       <span class={`px-2 py-1 text-xs rounded-full ${prop.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
@@ -355,16 +367,40 @@ try {
         if (leads.length === 0) {
           tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay leads</td></tr>';
         } else {
-          tbody.innerHTML = leads.map((lead: any) => `
-            <tr class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm font-medium text-gray-900">${lead.name}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">${lead.email}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">${lead.phone || '-'}</td>
-              <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">${lead.score}</span></td>
-              <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">${lead.status}</span></td>
-              <td class="px-6 py-4 text-sm text-gray-600">${new Date(lead.createdAt).toLocaleDateString('es-CL')}</td>
-            </tr>
-          `).join('');
+          tbody.innerHTML = leads.map((lead: any) => {
+            const scoreColor = lead.score >= 80 ? 'bg-green-100 text-green-800' : 
+                              lead.score >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                              'bg-red-100 text-red-800';
+            
+            const statusColors: Record<string, string> = {
+              'new': 'bg-blue-100 text-blue-800',
+              'contacted': 'bg-yellow-100 text-yellow-800',
+              'qualified': 'bg-green-100 text-green-800',
+              'converted': 'bg-purple-100 text-purple-800',
+              'lost': 'bg-gray-100 text-gray-800'
+            };
+            const statusColor = statusColors[lead.status] || 'bg-gray-100 text-gray-800';
+            
+            const statusLabels: Record<string, string> = {
+              'new': 'Nuevo',
+              'contacted': 'Contactado',
+              'qualified': 'Calificado',
+              'converted': 'Convertido',
+              'lost': 'Perdido'
+            };
+            const statusLabel = statusLabels[lead.status] || lead.status;
+            
+            return `
+              <tr class="hover:bg-gray-50">
+                <td class="px-6 py-4 text-sm font-medium text-gray-900">${lead.name}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${lead.email}</td>
+                <td class="px-6 py-4 text-sm text-gray-600">${lead.phone || '-'}</td>
+                <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${scoreColor}">${lead.score}</span></td>
+                <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColor}">${statusLabel}</span></td>
+                <td class="px-6 py-4 text-sm text-gray-600">${new Date(lead.createdAt).toLocaleDateString('es-CL')}</td>
+              </tr>
+            `;
+          }).join('');
         }
       } catch (error) {
         console.error('Error loading leads:', error);
