@@ -92,4 +92,12 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
 
 <style is:global>
   @import '../styles/globals.css';
+  
+  /* Ocultar branding de Chatwoot */
+  .branding--text,
+  .branding,
+  [class*="branding"],
+  a[href*="chatwoot.com"] {
+    display: none !important;
+  }
 </style>
