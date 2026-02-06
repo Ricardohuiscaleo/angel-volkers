@@ -1,0 +1,53 @@
+---
+interface Props {
+  title: string;
+  active: 'properties' | 'leads';
+}
+
+const { title, active } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title} | Admin</title>
+  </head>
+  <body class="bg-gray-50">
+    <div class="flex h-screen">
+      <aside class="w-64 bg-white shadow-lg">
+        <div class="p-6 border-b">
+          <h1 class="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+            Angel & Völkers
+          </h1>
+          <p class="text-sm text-gray-500">Panel de Administración</p>
+        </div>
+        <nav class="p-4">
+          <a 
+            href="/admin" 
+            class={`block px-4 py-3 rounded-lg mb-2 transition ${active === 'properties' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            🏠 Gestión de Propiedades
+          </a>
+          <a 
+            href="/admin/leads" 
+            class={`block px-4 py-3 rounded-lg mb-2 transition ${active === 'leads' ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+          >
+            👥 Gestión de Clientes
+          </a>
+          <a href="/" class="block px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition mt-8">
+            ← Volver al sitio
+          </a>
+        </nav>
+      </aside>
+      <main class="flex-1 overflow-y-auto">
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/globals.css';
+</style>
