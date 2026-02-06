@@ -2,10 +2,15 @@
 import Layout from '../layouts/Layout.astro';
 import { prisma } from '../lib/db';
 
-const properties = await prisma.property.findMany({
-  orderBy: { createdAt: 'desc' },
-  take: 100,
-});
+let properties = [];
+try {
+  properties = await prisma.property.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 100,
+  });
+} catch (error) {
+  console.warn('No se pudo conectar a la base de datos durante el build');
+}
 ---
 
 <Layout title="Admin - Gestión de Propiedades">
