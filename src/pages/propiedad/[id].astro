@@ -92,17 +92,61 @@ const formatPrice = (price: number) => {
             </div>
           )}
 
-          <form class="space-y-4">
-            <input type="text" placeholder="Nombre" class="w-full p-3 border rounded" required />
-            <input type="email" placeholder="Email" class="w-full p-3 border rounded" required />
-            <input type="tel" placeholder="Teléfono" class="w-full p-3 border rounded" />
-            <textarea placeholder="Mensaje" rows="4" class="w-full p-3 border rounded"></textarea>
+          <form id="contactForm" class="space-y-4">
+            <input type="hidden" name="propertyId" value={property.id} />
+            <input type="text" name="name" placeholder="Nombre" class="w-full p-3 border rounded" required />
+            <input type="email" name="email" placeholder="Email" class="w-full p-3 border rounded" required />
+            <input type="tel" name="phone" placeholder="Teléfono" class="w-full p-3 border rounded" />
+            <textarea name="message" placeholder="Mensaje" rows="4" class="w-full p-3 border rounded"></textarea>
             <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded hover:bg-blue-700">
               Enviar consulta
             </button>
+            <div id="formMessage" class="hidden text-sm"></div>
           </form>
         </div>
       </div>
     </div>
   </main>
+
+  <script>
+    document.getElementById('contactForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target as HTMLFormElement;
+      const formData = new FormData(form);
+      const btn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const msg = document.getElementById('formMessage');
+      
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+      
+      try {
+        const res = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.get('name'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            message: formData.get('message'),
+            propertyId: formData.get('propertyId')
+          })
+        });
+        
+        if (res.ok) {
+          msg!.className = 'text-green-600 text-sm';
+          msg!.textContent = '¡Mensaje enviado! Te contactaremos pronto.';
+          form.reset();
+        } else {
+          throw new Error('Error al enviar');
+        }
+      } catch (error) {
+        msg!.className = 'text-red-600 text-sm';
+        msg!.textContent = 'Error al enviar. Intenta nuevamente.';
+      } finally {
+        msg!.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Enviar consulta';
+      }
+    });
+  </script>
 </Layout>
