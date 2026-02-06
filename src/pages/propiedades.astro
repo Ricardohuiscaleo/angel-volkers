@@ -4,16 +4,35 @@ import { prisma } from '../lib/db';
 
 export const prerender = false;
 
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1');
+const type = url.searchParams.get('type') || '';
+const operation = url.searchParams.get('operation') || '';
+const city = url.searchParams.get('city') || '';
+const perPage = 12;
+
+const where: any = { status: 'available' };
+if (type) where.type = type;
+if (operation) where.operation = operation;
+if (city) where.city = city;
+
 let properties: any[] = [];
+let total = 0;
 try {
-  properties = await prisma.property.findMany({
-    where: { status: 'available' },
-    orderBy: { createdAt: 'desc' },
-    take: 12
-  });
+  [properties, total] = await Promise.all([
+    prisma.property.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * perPage,
+      take: perPage
+    }),
+    prisma.property.count({ where })
+  ]);
 } catch (error) {
   console.error('Error cargando propiedades:', error);
 }
+
+const totalPages = Math.ceil(total / perPage);
 
 function formatPrice(price: number, currency: string = 'CLP'): string {
   return new Intl.NumberFormat('es-CL', {
@@ -29,48 +48,122 @@ function formatPrice(price: number, currency: string = 'CLP'): string {
     <div class="container mx-auto px-4">
       <h1 class="text-4xl font-bold mb-8">Propiedades Disponibles</h1>
       
+      <!-- Filtros -->
+      <form class="bg-white p-6 rounded-lg shadow-md mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-2">Tipo</label>
+            <select name="type" class="w-full border rounded-lg px-4 py-2">
+              <option value="">Todos</option>
+              <option value="house" selected={type === 'house'}>Casa</option>
+              <option value="apartment" selected={type === 'apartment'}>Departamento</option>
+              <option value="office" selected={type === 'office'}>Oficina</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Operación</label>
+            <select name="operation" class="w-full border rounded-lg px-4 py-2">
+              <option value="">Todas</option>
+              <option value="sale" selected={operation === 'sale'}>Venta</option>
+              <option value="rent" selected={operation === 'rent'}>Arriendo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-2">Ciudad</label>
+            <input type="text" name="city" value={city} placeholder="Ej: Santiago" class="w-full border rounded-lg px-4 py-2" />
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+              Buscar
+            </button>
+          </div>
+        </div>
+      </form>
+      
       {properties.length === 0 ? (
         <div class="text-center py-20">
           <p class="text-xl text-gray-600">No hay propiedades disponibles</p>
           <p class="text-gray-500 mt-2">Vuelve pronto para ver nuevas opciones</p>
         </div>
       ) : (
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {properties.map((p) => (
-            <article class="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-xl">
-              <a href={`/propiedades/${p.id}`} class="block">
-                <div class="relative aspect-[3/2] overflow-hidden">
-                  <img
-                    src={p.images[0] || '/placeholder.jpg'}
-                    alt={p.title}
-                    class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                  />
-                </div>
-                
-                <div class="p-4">
-                  <p class="text-sm text-gray-600 mb-1">
-                    {p.city}, {p.region}, Chile
-                  </p>
+        <>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {properties.map((p) => (
+              <article class="group relative overflow-hidden rounded-lg bg-white shadow-md transition-all hover:shadow-xl">
+                <a href={`/propiedades/${p.id}`} class="block">
+                  <div class="relative aspect-[3/2] overflow-hidden">
+                    <img
+                      src={p.images[0] || '/placeholder.jpg'}
+                      alt={p.title}
+                      class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  </div>
                   
-                  <h2 class="text-lg font-semibold text-gray-900 mb-2">
-                    {p.title}
-                  </h2>
-                  
-                  <p class="text-2xl font-bold text-blue-600 mb-3">
-                    {formatPrice(p.price, p.currency)}
-                  </p>
-                  
-                  <ul class="flex flex-wrap gap-3 text-sm text-gray-600">
-                    {p.bedrooms > 0 && <li>{p.bedrooms} Dorm.</li>}
-                    {p.bathrooms > 0 && <li>{p.bathrooms} Baños</li>}
-                    <li>{p.area} m²</li>
-                  </ul>
-                </div>
-              </a>
-            </article>
-          ))}
-        </div>
+                  <div class="p-4">
+                    <p class="text-sm text-gray-600 mb-1 flex items-center gap-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                      {p.city}, {p.region}
+                    </p>
+                    
+                    <h2 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {p.title}
+                    </h2>
+                    
+                    <p class="text-2xl font-bold text-blue-600 mb-3">
+                      {formatPrice(p.price, p.currency)}
+                    </p>
+                    
+                    <ul class="flex flex-wrap gap-3 text-sm text-gray-600">
+                      {p.bedrooms > 0 && (
+                        <li class="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/></svg>
+                          {p.bedrooms}
+                        </li>
+                      )}
+                      {p.bathrooms > 0 && (
+                        <li class="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-1-.5C4.683 3 4 3.683 4 4.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><line x1="10" x2="8" y1="5" y2="7"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="7" x2="7" y1="19" y2="21"/><line x1="17" x2="17" y1="19" y2="21"/></svg>
+                          {p.bathrooms}
+                        </li>
+                      )}
+                      <li class="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                        {p.area} m²
+                      </li>
+                    </ul>
+                  </div>
+                </a>
+              </article>
+            ))}
+          </div>
+          
+          <!-- Paginación -->
+          {totalPages > 1 && (
+            <div class="flex justify-center items-center gap-2 mt-8">
+              {page > 1 && (
+                <a href={`?page=${page - 1}${type ? `&type=${type}` : ''}${operation ? `&operation=${operation}` : ''}${city ? `&city=${city}` : ''}`} class="px-4 py-2 border rounded-lg hover:bg-gray-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </a>
+              )}
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <a 
+                  href={`?page=${p}${type ? `&type=${type}` : ''}${operation ? `&operation=${operation}` : ''}${city ? `&city=${city}` : ''}`}
+                  class={`px-4 py-2 border rounded-lg ${p === page ? 'bg-blue-600 text-white' : 'hover:bg-gray-100'}`}
+                >
+                  {p}
+                </a>
+              ))}
+              
+              {page < totalPages && (
+                <a href={`?page=${page + 1}${type ? `&type=${type}` : ''}${operation ? `&operation=${operation}` : ''}${city ? `&city=${city}` : ''}`} class="px-4 py-2 border rounded-lg hover:bg-gray-100">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </a>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   </section>
