@@ -39,30 +39,6 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
 
     <ChatWidget client:load />
 
-    <script is:inline>
-      (function(d,t) {
-        var BASE_URL="https://chatwoot.agenterag.com";
-        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-        g.src=BASE_URL+"/packs/js/sdk.js";
-        g.defer = true;
-        if(s.parentNode) s.parentNode.insertBefore(g,s);
-        g.onload=function(){
-          if(window.$chatwoot) {
-            window.chatwootSettings = {
-              hideMessageBubble: true,
-              position: 'right',
-              locale: 'es',
-              type: 'standard'
-            };
-            window.$chatwoot.run({
-              websiteToken: 'qaQdmbHP9zd4uqt5FAjDcUUr',
-              baseUrl: BASE_URL
-            });
-          }
-        }
-      })(document,"script");
-    </script>
-
     <footer class="bg-gray-900 text-white py-12 mt-20">
       <div class="container mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
