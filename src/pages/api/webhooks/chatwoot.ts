@@ -2,6 +2,7 @@
 import type { APIRoute } from 'astro';
 import { sendToN8N, n8nWebhooks } from '../../../lib/n8n';
 import { prisma } from '../../../lib/db';
+import { cache } from '../../../lib/redis';
 
 export const prerender = false;
 
@@ -11,12 +12,42 @@ export const POST: APIRoute = async ({ request }) => {
     const { event, conversation, message } = data;
 
     console.log('Chatwoot webhook received:', event);
+    console.log('Message type:', message?.message_type);
+    console.log('Sender type:', message?.sender?.type);
+    console.log('Sender ID:', message?.sender?.id);
 
-    // Procesar solo mensajes entrantes
+    // Si un agente humano envía un mensaje, marcar la conversación como "humano activo"
+    if (event === 'message_created' && 
+        message.message_type === 'outgoing' && 
+        message.sender?.type === 'user') {  // ← minúscula
+      const conversationId = conversation.id.toString();
+      // Marcar conversación con humano activo por 1 minuto (pruebas)
+      await cache.set(`human_active:${conversationId}`, 'true', 60);
+      console.log(`✅ Conversación ${conversationId} marcada con humano activo por 1 min (agente: ${message.sender.name})`);
+      
+      return new Response(JSON.stringify({ success: true, human_active: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Procesar solo mensajes entrantes del cliente
     if (event === 'message_created' && message.message_type === 'incoming') {
+      const conversationId = conversation.id.toString();
+      
+      // Verificar si hay un humano activo en esta conversación
+      const humanActive = await cache.get(`human_active:${conversationId}`);
+      
+      if (humanActive) {
+        console.log(`🚫 Conversación ${conversationId} tiene humano activo, bot no responderá`);
+        return new Response(JSON.stringify({ success: true, skipped: 'human_active' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       const content = message.content;
       const contactId = conversation.contact_id;
-      const conversationId = conversation.id.toString();
 
       // Buscar usuario por chatwootId
       const user = await prisma.user.findUnique({
