@@ -26,6 +26,13 @@ export default function ChatWidget() {
     return `session-${Date.now()}`;
   });
   const [isTyping, setIsTyping] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const playNotificationSound = () => {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2CBhku+zooVARC0yl4fG5ZRwFNo3V7859LwUofsz');
+    audio.volume = 0.3;
+    audio.play().catch(() => {});
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -43,16 +50,32 @@ export default function ChatWidget() {
   }, [messages]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const timer1 = setTimeout(() => {
       if (!isOpen) {
         setMessages([{
           role: 'agent',
-          text: '¡Hola! 👋 Soy Sofía, asesora inmobiliaria de Angel & Völkers. ¿Te puedo ayudar a encontrar tu propiedad ideal?'
+          text: '¡Hola! 👋 Soy Sofía, asesora inmobiliaria de Angel & Völkers.'
         }]);
-        setIsOpen(true);
+        setUnreadCount(1);
+        playNotificationSound();
       }
     }, 5000);
-    return () => clearTimeout(timer);
+
+    const timer2 = setTimeout(() => {
+      if (!isOpen) {
+        setMessages(prev => [...prev, {
+          role: 'agent',
+          text: '¿Te puedo ayudar a encontrar tu propiedad ideal?'
+        }]);
+        setUnreadCount(2);
+        playNotificationSound();
+      }
+    }, 15000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
   }, [isOpen]);
 
   const sendMessage = async () => {
@@ -95,7 +118,7 @@ export default function ChatWidget() {
       `}</style>
       {!isOpen && (
         <button 
-          onClick={() => setIsOpen(true)} 
+          onClick={() => { setIsOpen(true); setUnreadCount(0); }} 
           style={{
             position:'fixed',
             bottom:'24px',
@@ -117,6 +140,26 @@ export default function ChatWidget() {
           onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
         >
           <MessageCircle size={28} color="white" />
+          {unreadCount > 0 && (
+            <span style={{
+              position:'absolute',
+              top:'-4px',
+              right:'-4px',
+              background:'#ef4444',
+              color:'white',
+              borderRadius:'50%',
+              width:'24px',
+              height:'24px',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              fontSize:'12px',
+              fontWeight:'bold',
+              border:'2px solid white'
+            }}>
+              {unreadCount}
+            </span>
+          )}
         </button>
       )}
       {isOpen && (
