@@ -74,24 +74,26 @@ model Agent {
 }
 
 model Lead {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  message     String?  @db.Text
-  source      String
-  status      String   @default("new")
-  score       Int      @default(0)
-  propertyId  String?
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
-  agentId     String?
-  agent       Agent?   @relation(fields: [agentId], references: [id])
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  conversationId  String?  @unique
+  name            String
+  email           String
+  phone           String?
+  message         String?  @db.Text
+  source          String
+  status          String   @default("new")
+  score           Int      @default(0)
+  propertyId      String?
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  agentId         String?
+  agent           Agent?   @relation(fields: [agentId], references: [id])
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([status, createdAt])
+  @@index([conversationId])
 }
 
 model Visit {
