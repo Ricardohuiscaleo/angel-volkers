@@ -5,218 +5,386 @@ import { prisma } from '../lib/db';
 export const prerender = false;
 
 let properties: any[] = [];
+let stats = {
+  totalProperties: 0,
+  totalLeads: 0,
+  totalVisits: 0,
+  conversionRate: 0
+};
+
 try {
   properties = await prisma.property.findMany({
     orderBy: { createdAt: 'desc' },
     take: 100,
   });
+  stats.totalProperties = properties.length;
 } catch (error) {
-  console.warn('No se pudo conectar a la base de datos durante el build');
+  console.warn('Error loading data');
 }
 ---
 
-<Layout title="Admin - Gestión de Propiedades">
-  <div class="min-h-screen bg-gray-50">
-    <div class="bg-white shadow">
-      <div class="container mx-auto px-4 py-6">
-        <div class="flex justify-between items-center">
-          <h1 class="text-2xl font-bold">Gestión de Propiedades</h1>
-          <button id="openModal" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-            + Nueva Propiedad
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="container mx-auto px-4 py-8">
-      <div class="bg-white rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciudad</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hab/Baños</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            {properties.map((prop) => (
-              <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 text-sm font-medium text-gray-900">{prop.title}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">{prop.type}</td>
-                <td class="px-6 py-4 text-sm text-gray-900">${prop.price.toLocaleString('es-CL')}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">{prop.city}</td>
-                <td class="px-6 py-4 text-sm text-gray-500">{prop.bedrooms}/{prop.bathrooms}</td>
-                <td class="px-6 py-4">
-                  <span class={`px-2 py-1 text-xs rounded-full ${prop.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                    {prop.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal -->
-  <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-      <div class="p-6">
-        <div class="flex justify-between items-center mb-6">
-          <h2 class="text-2xl font-bold">Nueva Propiedad</h2>
-          <button id="closeModal" class="text-gray-500 hover:text-gray-700">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+<Layout title="Admin - Angel & Völkers">
+  <div class="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <!-- Sidebar -->
+    <aside class="w-72 bg-white/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col shadow-xl">
+      <div class="p-6 border-b border-slate-200/60">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
             </svg>
-          </button>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-slate-900">Angel & Völkers</h1>
+            <p class="text-xs text-slate-500">Admin Dashboard</p>
+          </div>
         </div>
-
-        <form id="propertyForm" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Título</label>
-            <input type="text" name="title" required class="w-full px-3 py-2 border rounded-lg" />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Descripción</label>
-            <textarea name="description" required rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Precio (CLP)</label>
-              <input type="number" name="price" required class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Tipo</label>
-              <select name="type" required class="w-full px-3 py-2 border rounded-lg">
-                <option value="house">Casa</option>
-                <option value="apartment">Departamento</option>
-                <option value="office">Oficina</option>
-                <option value="warehouse">Bodega</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Operación</label>
-              <select name="operation" required class="w-full px-3 py-2 border rounded-lg">
-                <option value="sale">Venta</option>
-                <option value="rent">Arriendo</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Área (m²)</label>
-              <input type="number" name="area" required class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Habitaciones</label>
-              <input type="number" name="bedrooms" min="0" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Baños</label>
-              <input type="number" name="bathrooms" min="0" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Estacionamientos</label>
-              <input type="number" name="parking" min="0" class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">Dirección</label>
-            <input type="text" name="address" required class="w-full px-3 py-2 border rounded-lg" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium mb-1">Ciudad</label>
-              <input type="text" name="city" required class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium mb-1">Región</label>
-              <input type="text" name="region" required class="w-full px-3 py-2 border rounded-lg" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-1">URL de Imagen</label>
-            <input type="url" name="image" placeholder="https://..." class="w-full px-3 py-2 border rounded-lg" />
-          </div>
-
-          <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-            Agregar Propiedad
-          </button>
-        </form>
       </div>
-    </div>
+      
+      <nav class="flex-1 p-4 space-y-2">
+        <button data-tab="dashboard" class="tab-btn active w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Dashboard</span>
+        </button>
+        <button data-tab="properties" class="tab-btn w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Propiedades</span>
+        </button>
+        <button data-tab="leads" class="tab-btn w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Leads</span>
+        </button>
+        <button data-tab="visits" class="tab-btn w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Visitas</span>
+        </button>
+        <button data-tab="reports" class="tab-btn w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Reportes</span>
+        </button>
+        <button data-tab="settings" class="tab-btn w-full flex items-center gap-3 px-4 py-3 text-left rounded-xl hover:bg-slate-50 transition-all duration-200 group">
+          <svg class="w-5 h-5 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span class="font-medium text-slate-700 group-hover:text-slate-900">Configuración</span>
+        </button>
+      </nav>
+
+      <div class="p-4 border-t border-slate-200/60">
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-semibold shadow-md">
+            A
+          </div>
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-slate-900">Admin</p>
+            <p class="text-xs text-slate-500">admin@angelvolkers.cl</p>
+          </div>
+          <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto">
+      <!-- Dashboard Tab -->
+      <div id="dashboard-tab" class="tab-content">
+        <div class="p-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h2>
+          
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-slate-600">Propiedades</p>
+                  <p class="text-3xl font-bold text-slate-900 mt-2">{stats.totalProperties}</p>
+                  <p class="text-xs text-emerald-600 mt-1">+12% este mes</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-slate-600">Leads</p>
+                  <p class="text-3xl font-bold text-slate-900 mt-2" id="dashLeads">0</p>
+                  <p class="text-xs text-emerald-600 mt-1">+8% este mes</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-slate-600">Visitas</p>
+                  <p class="text-3xl font-bold text-slate-900 mt-2" id="dashVisits">0</p>
+                  <p class="text-xs text-emerald-600 mt-1">+15% este mes</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-slate-600">Conversión</p>
+                  <p class="text-3xl font-bold text-slate-900 mt-2" id="dashConversion">0%</p>
+                  <p class="text-xs text-emerald-600 mt-1">+3% este mes</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                  <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 class="text-lg font-semibold mb-4">Últimas Propiedades</h3>
+              <div class="space-y-3">
+                {properties.slice(0, 5).map(prop => (
+                  <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p class="font-medium text-gray-900">{prop.title}</p>
+                      <p class="text-sm text-gray-500">{prop.city}</p>
+                    </div>
+                    <p class="font-semibold text-blue-600">${prop.price.toLocaleString('es-CL')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <h3 class="text-lg font-semibold mb-4">Actividad Reciente</h3>
+              <div class="space-y-3" id="recentActivity">
+                <p class="text-gray-500 text-center py-8">Cargando actividad...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Properties Tab -->
+      <div id="properties-tab" class="tab-content hidden">
+        <div class="p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">Propiedades</h2>
+            <button id="addPropertyBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              + Nueva Propiedad
+            </button>
+          </div>
+
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Título</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ciudad</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                {properties.map(prop => (
+                  <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">{prop.title}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{prop.type}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${prop.price.toLocaleString('es-CL')}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{prop.city}</td>
+                    <td class="px-6 py-4">
+                      <span class={`px-2 py-1 text-xs rounded-full ${prop.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {prop.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leads Tab -->
+      <div id="leads-tab" class="tab-content hidden">
+        <div class="p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">Leads</h2>
+            <button id="addLeadBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              + Nuevo Lead
+            </button>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <p class="text-sm text-gray-600">Total</p>
+              <p class="text-3xl font-bold text-gray-900 mt-2" id="totalLeads">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <p class="text-sm text-gray-600">Nuevos</p>
+              <p class="text-3xl font-bold text-blue-600 mt-2" id="newLeads">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <p class="text-sm text-gray-600">Contactados</p>
+              <p class="text-3xl font-bold text-yellow-600 mt-2" id="contactedLeads">0</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+              <p class="text-sm text-gray-600">Calificados</p>
+              <p class="text-3xl font-bold text-green-600 mt-2" id="qualifiedLeads">0</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nombre</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teléfono</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="leadsTableBody" class="bg-white divide-y divide-gray-200">
+                <tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Cargando leads...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visits Tab -->
+      <div id="visits-tab" class="tab-content hidden">
+        <div class="p-8">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">Visitas</h2>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              + Agendar Visita
+            </button>
+          </div>
+          <div class="bg-white p-12 rounded-lg shadow-sm border border-gray-200 text-center">
+            <div class="text-6xl mb-4">📅</div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Gestión de Visitas</h3>
+            <p class="text-gray-600">Próximamente: Calendario y gestión de visitas a propiedades</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reports Tab -->
+      <div id="reports-tab" class="tab-content hidden">
+        <div class="p-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-6">Reportes</h2>
+          <div class="bg-white p-12 rounded-lg shadow-sm border border-gray-200 text-center">
+            <div class="text-6xl mb-4">📈</div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Análisis y Reportes</h3>
+            <p class="text-gray-600">Próximamente: Gráficos de ventas, conversión y métricas</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settings Tab -->
+      <div id="settings-tab" class="tab-content hidden">
+        <div class="p-8">
+          <h2 class="text-3xl font-bold text-gray-900 mb-6">Configuración</h2>
+          <div class="bg-white p-12 rounded-lg shadow-sm border border-gray-200 text-center">
+            <div class="text-6xl mb-4">⚙️</div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-2">Configuración del Sistema</h3>
+            <p class="text-gray-600">Próximamente: Ajustes, integraciones y preferencias</p>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
-</Layout>
 
-<script>
-  const modal = document.getElementById('modal')!;
-  const openModal = document.getElementById('openModal')!;
-  const closeModal = document.getElementById('closeModal')!;
-  const form = document.getElementById('propertyForm') as HTMLFormElement;
+  <script>
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
 
-  openModal.addEventListener('click', () => {
-    modal.classList.remove('hidden');
-  });
-
-  closeModal.addEventListener('click', () => {
-    modal.classList.add('hidden');
-  });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-    }
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(form);
-    
-    const data = {
-      title: formData.get('title'),
-      description: formData.get('description'),
-      price: parseInt(formData.get('price') as string),
-      type: formData.get('type'),
-      operation: formData.get('operation'),
-      area: parseInt(formData.get('area') as string),
-      bedrooms: parseInt(formData.get('bedrooms') as string) || 0,
-      bathrooms: parseInt(formData.get('bathrooms') as string) || 0,
-      parking: parseInt(formData.get('parking') as string) || 0,
-      address: formData.get('address'),
-      city: formData.get('city'),
-      region: formData.get('region'),
-      image: formData.get('image') || 'https://via.placeholder.com/800x600',
-    };
-
-    try {
-      const res = await fetch('/api/properties', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabName = btn.getAttribute('data-tab');
+        tabBtns.forEach(b => b.classList.remove('active', 'bg-blue-50', 'text-blue-600'));
+        tabContents.forEach(c => c.classList.add('hidden'));
+        btn.classList.add('active', 'bg-blue-50', 'text-blue-600');
+        document.getElementById(`${tabName}-tab`)?.classList.remove('hidden');
       });
+    });
 
-      if (res.ok) {
-        alert('✅ Propiedad agregada exitosamente');
-        window.location.reload();
-      } else {
-        throw new Error('Error al agregar propiedad');
+    async function loadLeads() {
+      try {
+        const res = await fetch('/api/leads');
+        const leads = await res.json();
+        const total = leads.length;
+        const newLeads = leads.filter((l: any) => l.status === 'new').length;
+        const contacted = leads.filter((l: any) => l.status === 'contacted').length;
+        const qualified = leads.filter((l: any) => l.status === 'qualified').length;
+
+        document.getElementById('totalLeads')!.textContent = total.toString();
+        document.getElementById('newLeads')!.textContent = newLeads.toString();
+        document.getElementById('contactedLeads')!.textContent = contacted.toString();
+        document.getElementById('qualifiedLeads')!.textContent = qualified.toString();
+        document.getElementById('dashLeads')!.textContent = total.toString();
+
+        const tbody = document.getElementById('leadsTableBody')!;
+        if (leads.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No hay leads</td></tr>';
+        } else {
+          tbody.innerHTML = leads.map((lead: any) => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-6 py-4 text-sm font-medium text-gray-900">${lead.name}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">${lead.email}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">${lead.phone || '-'}</td>
+              <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">${lead.score}</span></td>
+              <td class="px-6 py-4"><span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">${lead.status}</span></td>
+              <td class="px-6 py-4 text-sm text-gray-600">${new Date(lead.createdAt).toLocaleDateString('es-CL')}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (error) {
+        console.error('Error loading leads:', error);
       }
-    } catch (error) {
-      alert('❌ Error al agregar propiedad');
     }
-  });
-</script>
+
+    loadLeads();
+  </script>
+
+  <style>
+    .tab-btn.active {
+      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    .tab-btn.active svg {
+      color: white !important;
+    }
+    .tab-btn.active span {
+      color: white !important;
+    }
+  </style>
 </Layout>
