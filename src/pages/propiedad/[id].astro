@@ -45,17 +45,17 @@ const formatPrice = (price: number) => {
           <p class="text-3xl text-blue-600 font-bold mb-4">{formatPrice(property.price)}</p>
           
           <div class="flex gap-6 mb-6">
-            {property.bedrooms > 0 && (
+            {property.bedrooms && property.bedrooms > 0 && (
               <span class="flex items-center gap-2">
                 🛏️ {property.bedrooms} habitaciones
               </span>
             )}
-            {property.bathrooms > 0 && (
+            {property.bathrooms && property.bathrooms > 0 && (
               <span class="flex items-center gap-2">
                 🚿 {property.bathrooms} baños
               </span>
             )}
-            {property.area > 0 && (
+            {property.area && property.area > 0 && (
               <span class="flex items-center gap-2">
                 📐 {property.area} m²
               </span>
