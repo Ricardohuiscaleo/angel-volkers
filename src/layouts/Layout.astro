@@ -21,12 +21,6 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
     <title>{title} | Angel & Völkers</title>
   </head>
   <script is:inline>
-    window.chatwootSettings = {
-      hideMessageBubble: true,
-      position: 'right',
-      locale: 'es',
-      type: 'standard'
-    };
     (function(d,t) {
       var BASE_URL="https://chatwoot.agenterag.com";
       var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
@@ -34,10 +28,16 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
       g.defer = true;
       if(s.parentNode) s.parentNode.insertBefore(g,s);
       g.onload=function(){
+        window.chatwootSettings = {
+          hideMessageBubble: true,
+          position: 'right',
+          locale: 'es',
+          type: 'standard'
+        };
         window.$chatwoot.run({
           websiteToken: 'qaQdmbHP9zd4uqt5FAjDcUUr',
           baseUrl: BASE_URL
-        })
+        });
       }
     })(document,"script");
   </script>
