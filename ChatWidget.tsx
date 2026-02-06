@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
 
-declare global {
-  interface Window {
-    $chatwoot?: any;
-    chatwootSDK?: any;
-  }
-}
-
 function parseMarkdown(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -23,7 +16,7 @@ export default function ChatWidget() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [sdkReady, setSdkReady] = useState(false);
+  const [conversationId] = useState(() => `conv-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   const playNotificationSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2CBhku+zooVARC0yl4fG5ZRwFNo3V7859LwUofsz');
@@ -31,27 +24,7 @@ export default function ChatWidget() {
     audio.play().catch(() => {});
   };
 
-  useEffect(() => {
-    const checkSDK = setInterval(() => {
-      if (window.$chatwoot) {
-        setSdkReady(true);
-        clearInterval(checkSDK);
-        
-        window.$chatwoot.on('message:received', (data: any) => {
-          if (data.message_type === 0) {
-            setMessages(prev => [...prev, { role: 'agent', text: data.content }]);
-            if (!isOpen) {
-              setUnreadCount(prev => prev + 1);
-              playNotificationSound();
-            }
-            setIsTyping(false);
-          }
-        });
-      }
-    }, 100);
 
-    return () => clearInterval(checkSDK);
-  }, [isOpen]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -98,7 +71,7 @@ export default function ChatWidget() {
   }, [isOpen]);
 
   const sendMessage = async () => {
-    if (!input.trim() || !sdkReady) return;
+    if (!input.trim()) return;
     
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
@@ -106,10 +79,21 @@ export default function ChatWidget() {
     setIsTyping(true);
 
     try {
-      window.$chatwoot.sendMessage(userMsg);
+      const response = await fetch('https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/chat-inmobiliario', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: userMsg,
+          conversation_id: conversationId
+        })
+      });
+      
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'agent', text: data.response }]);
     } catch (error) {
-      console.error('Error enviando mensaje:', error);
+      console.error('Error:', error);
       setMessages(prev => [...prev, { role: 'agent', text: 'Disculpe, hubo un error. Por favor intente nuevamente.' }]);
+    } finally {
       setIsTyping(false);
     }
   };
