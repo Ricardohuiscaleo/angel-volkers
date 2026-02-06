@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
 
+// Declarar tipos globales para Chatwoot SDK
+declare global {
+  interface Window {
+    $chatwoot?: {
+      toggle: (state: 'open' | 'close') => void;
+      sendMessage: (message: string) => void;
+      on: (event: string, callback: (data: any) => void) => void;
+    };
+  }
+}
+
 function parseMarkdown(text: string): string {
   return text
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -14,25 +25,39 @@ export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user'|'agent', text: string}>>([]);
   const [input, setInput] = useState('');
-  const [sessionId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      let id = localStorage.getItem('chatSessionId');
-      if (!id) {
-        id = `session-${Date.now()}`;
-        localStorage.setItem('chatSessionId', id);
-      }
-      return id;
-    }
-    return `session-${Date.now()}`;
-  });
   const [isTyping, setIsTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [chatwootReady, setChatwootReady] = useState(false);
 
   const playNotificationSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIGGS57OihUBELTKXh8bllHAU2jdXvzn0vBSh+zPDajzsKElyx6OyrWBUIQ5zd8sFuJAUuhM/z24k2CBhku+zooVARC0yl4fG5ZRwFNo3V7859LwUofsz');
     audio.volume = 0.3;
     audio.play().catch(() => {});
   };
+
+  // Inicializar Chatwoot SDK
+  useEffect(() => {
+    const checkChatwoot = setInterval(() => {
+      if (window.$chatwoot) {
+        setChatwootReady(true);
+        clearInterval(checkChatwoot);
+        
+        // Escuchar mensajes entrantes de Chatwoot
+        window.$chatwoot.on('message:received', (data: any) => {
+          if (data.message_type === 'outgoing') {
+            setMessages(prev => [...prev, { role: 'agent', text: data.content }]);
+            if (!isOpen) {
+              setUnreadCount(prev => prev + 1);
+              playNotificationSound();
+            }
+            setIsTyping(false);
+          }
+        });
+      }
+    }, 100);
+
+    return () => clearInterval(checkChatwoot);
+  }, [isOpen]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -79,31 +104,18 @@ export default function ChatWidget() {
   }, [isOpen]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !chatwootReady) return;
+    
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setInput('');
+    setIsTyping(true);
 
+    // Enviar mensaje a través del SDK de Chatwoot
     try {
-      const typingTimer = setTimeout(() => {
-        setIsTyping(true);
-      }, 2000);
-
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMsg, sessionId })
-      });
-      const data = await res.json();
-      
-      clearTimeout(typingTimer);
-      setIsTyping(false);
-      
-      if (data.response) {
-        setMessages(prev => [...prev, { role: 'agent', text: data.response }]);
-      }
+      window.$chatwoot?.sendMessage(userMsg);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error enviando mensaje:', error);
       setIsTyping(false);
     }
   };

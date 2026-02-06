@@ -23,8 +23,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -288,
-        1216
+        -48,
+        1120
       ],
       "id": "f56470ea-4c35-458d-b893-0f2e02fa6ed2",
       "name": "Extraer Datos"
@@ -55,8 +55,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -304,
-        1440
+        640,
+        1120
       ],
       "id": "27a179b6-6eca-49d7-b8d0-91b8bc688ebc",
       "name": "¿Es el último mensaje?"
@@ -84,8 +84,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -128,
-        1424
+        1104,
+        1104
       ],
       "id": "b2d37a8e-f273-419a-9a63-e4c1f7f51281",
       "name": "Unir Mensajes"
@@ -113,8 +113,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        272,
-        1424
+        32,
+        1360
       ],
       "id": "b0fca2f9-f9be-434d-839e-4cb5a75eac27",
       "name": "Preparar para IA"
@@ -130,8 +130,8 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        176,
-        1664
+        880,
+        1360
       ],
       "id": "e57914d7-f247-431d-ba83-4b8d9bb77203",
       "name": "AI Sofia",
@@ -154,8 +154,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        560,
-        1664
+        1184,
+        1360
       ],
       "id": "92550c45-0d90-41c9-9d77-33ea1ab7d1f4",
       "name": "Formatear Respuesta"
@@ -169,8 +169,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        752,
-        1664
+        1568,
+        1360
       ],
       "id": "301ca40f-e039-4de8-b1c8-f433bb55b9ef",
       "name": "Responder"
@@ -180,8 +180,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        -128,
-        1664
+        880,
+        1152
       ],
       "id": "aaa66733-f6fa-4951-b4af-2214c233fb67",
       "name": "Esperar más mensajes"
@@ -196,8 +196,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -480,
-        1216
+        -240,
+        1120
       ],
       "id": "52b6272b-6338-46c9-9bb2-36e25ccbabea",
       "name": "Webhook1",
@@ -208,16 +208,16 @@
         "descriptionType": "manual",
         "toolDescription": "Busca propiedades disponibles según criterios del cliente. Puede filtrar por ciudad, tipo de propiedad, rango de precio, número de habitaciones. Si no se especifica un filtro, muestra todas las disponibles.",
         "operation": "executeQuery",
-        "query": "SELECT \n  id,\n  title, \n  price, \n  bedrooms, \n  bathrooms, \n  area, \n  city, \n  \"type\",        -- ⬅️ Con comillas dobles\n  \"operation\",   -- ⬅️ Con comillas dobles (por consistencia)\n  address,\n  images,\n  CONCAT('https://proyecto1.dj3bvg.easypanel.host/propiedad/', id) as link\nFROM \"Property\" \nWHERE status = 'available'\n  AND ($1::text IS NULL OR city ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR \"type\" = $2)           -- ⬅️ También aquí\n  AND ($3::integer IS NULL OR price <= $3)\n  AND ($4::integer IS NULL OR bedrooms >= $4)\n  AND ($5::text IS NULL OR \"operation\" = $5)      -- ⬅️ También aquí\nORDER BY price ASC \nLIMIT 5;\n",
+        "query": "SELECT \n  id,\n  title, \n  price, \n  bedrooms, \n  bathrooms, \n  area, \n  city, \n  \"type\",\n  \"operation\",\n  address,\n  images,\n  CONCAT('https://proyecto1.dj3bvg.easypanel.host/propiedad/', id) as link\nFROM \"Property\" \nWHERE status = 'available'\n  AND ($1::text IS NULL OR city ILIKE '%' || $1 || '%')\n  AND ($2::text IS NULL OR \"type\" = $2)\n  AND ($3::integer IS NULL OR price <= $3)\n  AND ($4::integer IS NULL OR bedrooms >= $4)\n  AND ($5::text IS NULL OR \"operation\" = $5)\nORDER BY price ASC \nLIMIT 5;\n",
         "options": {
-          "queryReplacement": "=[\n  {{$json.ciudad || null}},\n  {{$json.tipo || null}},\n  {{$json.precio_max || null}},\n  {{$json.habitaciones || null}},\n  {{$json.operacion || null}}  \n]\n"
+          "queryReplacement": "=[\n  {{$json.ciudad || null}},\n  {{$json.tipo || null}},\n  {{$json.precio_max || null}},\n  {{$json.habitaciones || null}},\n  {{$json.operacion || null}}\n]\n"
         }
       },
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        544,
-        1872
+        1216,
+        1568
       ],
       "id": "d0bcb006-5766-43aa-8e02-66f601ad45c2",
       "name": "buscar_propiedades",
@@ -241,8 +241,8 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        400,
-        1872
+        1056,
+        1568
       ],
       "id": "d2ed8f76-85eb-47fb-a6e1-b98f68c5923b",
       "name": "capturar_lead",
@@ -260,8 +260,8 @@
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        112,
-        1216
+        288,
+        1120
       ],
       "id": "68249bff-55af-46f6-ac4c-23a0c52ca3c8",
       "name": "Espera 10s",
@@ -275,8 +275,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        80,
-        1424
+        1296,
+        1104
       ],
       "id": "d105c1ca-bbf2-4571-9689-08697f658f17",
       "name": "Redis limpia",
@@ -296,8 +296,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        -80,
-        1216
+        128,
+        1120
       ],
       "id": "82c9819b-174a-43fa-823e-9c0e997396d0",
       "name": "Redis Acumula Mensajes",
@@ -318,8 +318,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        272,
-        1216
+        448,
+        1120
       ],
       "id": "1708f6cd-ba6a-4283-acc4-5b9361672ffd",
       "name": "Redis obtiene mensajes acumulados",
@@ -344,8 +344,8 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
       "position": [
-        32,
-        1856
+        704,
+        1568
       ],
       "id": "32868a67-32ed-45a5-a1b2-4625cae8d5a9",
       "name": "OpenAI 4o mini",
@@ -366,8 +366,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        224,
-        1872
+        848,
+        1568
       ],
       "id": "279d49a3-e807-4cba-9287-879951601c79",
       "name": "Memoria Postgres Chat",
@@ -375,6 +375,168 @@
         "postgres": {
           "id": "BRtsVGeI1oQVKpeS",
           "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chatwoot.agenterag.com/api/v1/accounts/1/conversations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "QE7uYVApKM2H5M13X4yc4B1B"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contact_id\": {{ $('Parámetros').item.json.payload.contact.id }},\n  \"inbox_id\": 1\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        1360
+      ],
+      "id": "48dd1ea4-567b-4ed3-9fc5-96bdf9d9136d",
+      "name": "Crear Conversación Chatwoot",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "H56C64KZseGTiJD1",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatwoot.agenterag.com/api/v1/accounts/1/conversations/{{ $('Crear Conversación Chatwoot').item.json.id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "QE7uYVApKM2H5M13X4yc4B1B"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{ $('Preparar para IA').item.json.mensaje_usuario }}\",\n  \"message_type\": \"incoming\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        672,
+        1360
+      ],
+      "id": "1f2ee241-ad84-4236-83d4-545e8f189923",
+      "name": "Enviar Mensaje Usuario",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "H56C64KZseGTiJD1",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chatwoot.agenterag.com/api/v1/accounts/1/conversations/{{ $('Extraer Datos').item.json.conversation_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "QE7uYVApKM2H5M13X4yc4B1B"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"content\": \"{{ $json.response }}\",\n  \"message_type\": \"outgoing\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1376,
+        1360
+      ],
+      "id": "45d42a3d-1d0c-487f-b002-bb74f606ab66",
+      "name": "Enviar a Chatwoot",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "H56C64KZseGTiJD1",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chatwoot.agenterag.com/api/v1/accounts/1/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "QE7uYVApKM2H5M13X4yc4B1B"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Preparar para IA').item.json.conversation_id }}\",\n  \"identifier\": \"{{ $('Preparar para IA').item.json.conversation_id }}\"\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        240,
+        1360
+      ],
+      "id": "5eee57a3-4d92-429e-9e7d-be21d04e3dbc",
+      "name": "Parámetros",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "H56C64KZseGTiJD1",
+          "name": "Header Auth account"
         }
       }
     }
@@ -424,7 +586,7 @@
       "main": [
         [
           {
-            "node": "AI Sofia",
+            "node": "Parámetros",
             "type": "main",
             "index": 0
           }
@@ -446,7 +608,7 @@
       "main": [
         [
           {
-            "node": "Responder",
+            "node": "Enviar a Chatwoot",
             "type": "main",
             "index": 0
           }
@@ -551,39 +713,53 @@
           }
         ]
       ]
+    },
+    "Crear Conversación Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Enviar Mensaje Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Mensaje Usuario": {
+      "main": [
+        [
+          {
+            "node": "AI Sofia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar a Chatwoot": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parámetros": {
+      "main": [
+        [
+          {
+            "node": "Crear Conversación Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "pinData": {
-    "Webhook1": [
-      {
-        "headers": {
-          "host": "proyecto1-n8n.dj3bvg.easypanel.host",
-          "user-agent": "node",
-          "content-length": "91",
-          "accept": "*/*",
-          "accept-encoding": "br, gzip, deflate",
-          "accept-language": "*",
-          "content-type": "application/json",
-          "sec-fetch-mode": "cors",
-          "x-forwarded-for": "181.200.0.83",
-          "x-forwarded-host": "proyecto1-n8n.dj3bvg.easypanel.host",
-          "x-forwarded-port": "443",
-          "x-forwarded-proto": "https",
-          "x-forwarded-server": "d4c9c93f40f3",
-          "x-real-ip": "181.200.0.83"
-        },
-        "params": {},
-        "query": {},
-        "body": {
-          "message": "hola",
-          "conversationId": "session-1770332353496",
-          "phone": "session-1770332353496"
-        },
-        "webhookUrl": "https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/chat-inmobiliario",
-        "executionMode": "production"
-      }
-    ]
-  },
+  "pinData": {},
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "a7c598b284bb4cebb741d3aeabf4b7d9179eaf9332c2defb8159a9e4f1acc59a"

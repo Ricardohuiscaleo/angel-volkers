@@ -33,26 +33,33 @@ export const POST: APIRoute = async ({ request }) => {
       // Capturar lead progresivamente si hay datos de contacto
       if (conversation.meta?.sender) {
         const sender = conversation.meta.sender;
-        await prisma.lead.upsert({
-          where: { conversationId },
-          create: {
-            conversationId,
-            name: sender.name || 'Visitante',
-            email: sender.email || 'pendiente@email.com',
-            phone: sender.phone_number || null,
-            message: content,
-            source: 'chatwoot',
-            status: 'new',
-            score: (sender.email ? 20 : 0) + (sender.phone_number ? 30 : 0) + (sender.name ? 10 : 0),
-          },
-          update: {
-            name: sender.name || undefined,
-            email: sender.email || undefined,
-            phone: sender.phone_number || undefined,
-            message: content,
-            updatedAt: new Date(),
-          },
+        const existingLead = await prisma.lead.findFirst({
+          where: { email: sender.email || 'pendiente@email.com' },
         });
+
+        if (existingLead) {
+          await prisma.lead.update({
+            where: { id: existingLead.id },
+            data: {
+              name: sender.name || undefined,
+              phone: sender.phone_number || undefined,
+              message: content,
+              updatedAt: new Date(),
+            },
+          });
+        } else {
+          await prisma.lead.create({
+            data: {
+              name: sender.name || 'Visitante',
+              email: sender.email || 'pendiente@email.com',
+              phone: sender.phone_number || null,
+              message: content,
+              source: 'chatwoot',
+              status: 'new',
+              score: (sender.email ? 20 : 0) + (sender.phone_number ? 30 : 0) + (sender.name ? 10 : 0),
+            },
+          });
+        }
       }
 
       // Detectar intención de agendar visita
