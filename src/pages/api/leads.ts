@@ -60,7 +60,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     const score = calculateLeadScore(data);
 
-    const lead = await prismaLeads.lead.create({
+    const lead = await prisma.lead.create({
       data: {
         name: data.name,
         email: data.email,
@@ -101,7 +101,7 @@ export const PATCH: APIRoute = async ({ request }) => {
       );
     }
 
-    const lead = await prismaLeads.lead.update({
+    const lead = await prisma.lead.update({
       where: { id },
       data: updateData
     });
