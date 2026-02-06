@@ -85,28 +85,38 @@ export const POST: APIRoute = async ({ request }) => {
 
     const property = await prisma.property.create({
       data: {
-        ...data,
-        images: data.images || [],
-        features: data.features || [],
+        id: `prop-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        type: data.type,
+        operation: data.operation,
+        area: data.area,
+        bedrooms: data.bedrooms || 0,
+        bathrooms: data.bathrooms || 0,
+        address: data.address,
+        city: data.city,
+        region: data.region,
+        country: 'Chile',
+        images: data.image ? [data.image] : [],
+        features: [],
+        status: 'available',
       },
     });
 
-    // Invalidar cache de propiedades
     await cache.invalidatePattern('properties:*');
 
     return new Response(JSON.stringify(property), {
       status: 201,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error creating property:', error);
     return new Response(JSON.stringify({ error: 'Error creating property' }), {
       status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
   }
 };
+
+export const prerender = false;

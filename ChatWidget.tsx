@@ -1,10 +1,46 @@
 import { useEffect, useState } from 'react';
+import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
+
+function parseMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\$(\d{1,3}(,\d{3})+)/g, (match, p1) => {
+      return '$' + p1.replace(/,/g, '.');
+    })
+    .replace(/\n/g, '<br/>');
+}
 
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Array<{role: 'user'|'agent', text: string}>>([]);
   const [input, setInput] = useState('');
-  const [sessionId] = useState(() => `session-${Date.now()}`);
+  const [sessionId] = useState(() => {
+    if (typeof window !== 'undefined') {
+      let id = localStorage.getItem('chatSessionId');
+      if (!id) {
+        id = `session-${Date.now()}`;
+        localStorage.setItem('chatSessionId', id);
+      }
+      return id;
+    }
+    return `session-${Date.now()}`;
+  });
+  const [isTyping, setIsTyping] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('chatMessages');
+      if (saved) {
+        setMessages(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      localStorage.setItem('chatMessages', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,58 +62,213 @@ export default function ChatWidget() {
     setInput('');
 
     try {
+      const typingTimer = setTimeout(() => {
+        setIsTyping(true);
+      }, 2000);
+
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg, sessionId })
       });
       const data = await res.json();
+      
+      clearTimeout(typingTimer);
+      setIsTyping(false);
+      
       if (data.response) {
         setMessages(prev => [...prev, { role: 'agent', text: data.response }]);
       }
     } catch (error) {
       console.error('Error:', error);
+      setIsTyping(false);
     }
   };
 
   return (
     <>
+      <style>{`
+        @keyframes bounce {
+          0%, 80%, 100% { transform: scale(0); }
+          40% { transform: scale(1); }
+        }
+      `}</style>
       {!isOpen && (
-        <button onClick={() => setIsOpen(true)} className="fixed bottom-6 right-6 w-16 h-16 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 flex items-center justify-center z-50">
-          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
+        <button 
+          onClick={() => setIsOpen(true)} 
+          style={{
+            position:'fixed',
+            bottom:'24px',
+            right:'24px',
+            width:'64px',
+            height:'64px',
+            background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius:'50%',
+            boxShadow:'0 8px 24px rgba(102, 126, 234, 0.4)',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            zIndex:50,
+            border:'none',
+            cursor:'pointer',
+            transition:'transform 0.2s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <MessageCircle size={28} color="white" />
         </button>
       )}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50">
-          <div className="bg-blue-600 text-white p-4 rounded-t-lg flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 font-bold">S</div>
+        <div style={{
+          position:'fixed',
+          bottom:'24px',
+          right:'24px',
+          width:'400px',
+          height:'650px',
+          background:'white',
+          borderRadius:'16px',
+          boxShadow:'0 20px 60px rgba(0,0,0,0.15)',
+          display:'flex',
+          flexDirection:'column',
+          zIndex:50,
+          overflow:'hidden'
+        }}>
+          <div style={{
+            background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color:'white',
+            padding:'20px',
+            display:'flex',
+            justifyContent:'space-between',
+            alignItems:'center'
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <img 
+                src="https://laruta11-images.s3.amazonaws.com/menu/agente.png" 
+                alt="Sofía" 
+                style={{
+                  width:'48px',
+                  height:'48px',
+                  borderRadius:'50%',
+                  objectFit:'cover',
+                  border:'2px solid rgba(255,255,255,0.3)'
+                }}
+              />
               <div>
-                <div className="font-semibold">Sofía - Asesora Inmobiliaria</div>
-                <div className="text-xs opacity-90">En línea</div>
+                <div style={{fontWeight:600,fontSize:'16px'}}>Sofía</div>
+                <div style={{fontSize:'13px',opacity:0.9,display:'flex',alignItems:'center',gap:'6px'}}>
+                  <span style={{width:'8px',height:'8px',backgroundColor:'#10b981',borderRadius:'50%',display:'inline-block'}}></span>
+                  Asesora Inmobiliaria • En línea
+                </div>
               </div>
             </div>
-            <button onClick={() => setIsOpen(false)} className="text-white hover:text-gray-200">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <button 
+              onClick={() => setIsOpen(false)} 
+              style={{
+                color:'white',
+                background:'rgba(255,255,255,0.2)',
+                border:'none',
+                cursor:'pointer',
+                width:'36px',
+                height:'36px',
+                borderRadius:'8px',
+                display:'flex',
+                alignItems:'center',
+                justifyContent:'center',
+                transition:'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.3)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+            >
+              <X size={20} />
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div style={{
+            flex:1,
+            overflowY:'auto',
+            padding:'20px',
+            background:'#f8f9fa',
+            display:'flex',
+            flexDirection:'column',
+            gap:'12px'
+          }}>
             {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-3 rounded-lg ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}>
-                  {msg.text}
+              <div key={i} style={{display:'flex',justifyContent:msg.role==='user'?'flex-end':'flex-start'}}>
+                <div style={{
+                  maxWidth:'85%',
+                  padding:'12px 16px',
+                  borderRadius:'16px',
+                  backgroundColor:msg.role==='user'?'#667eea':'white',
+                  color:msg.role==='user'?'white':'#2d3748',
+                  boxShadow:msg.role==='user'?'0 4px 12px rgba(102,126,234,0.3)':'0 2px 8px rgba(0,0,0,0.08)',
+                  fontSize:'14px',
+                  lineHeight:'1.5'
+                }} dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }}>
                 </div>
               </div>
             ))}
+            {isTyping && (
+              <div style={{display:'flex',justifyContent:'flex-start'}}>
+                <div style={{
+                  maxWidth:'85%',
+                  padding:'12px 16px',
+                  borderRadius:'16px',
+                  backgroundColor:'white',
+                  boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
+                  display:'flex',
+                  gap:'4px',
+                  alignItems:'center'
+                }}>
+                  <span style={{width:'8px',height:'8px',backgroundColor:'#667eea',borderRadius:'50%',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.32s'}}></span>
+                  <span style={{width:'8px',height:'8px',backgroundColor:'#667eea',borderRadius:'50%',animation:'bounce 1.4s infinite ease-in-out both',animationDelay:'-0.16s'}}></span>
+                  <span style={{width:'8px',height:'8px',backgroundColor:'#667eea',borderRadius:'50%',animation:'bounce 1.4s infinite ease-in-out both'}}></span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="p-4 border-t">
-            <div className="flex gap-2">
-              <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} placeholder="Escribe tu mensaje..." className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" />
-              <button onClick={sendMessage} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Enviar</button>
+          <div style={{
+            padding:'20px',
+            borderTop:'1px solid #e2e8f0',
+            background:'white'
+          }}>
+            <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
+              <input 
+                type="text" 
+                value={input} 
+                onChange={(e) => setInput(e.target.value)} 
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()} 
+                placeholder="Escribe tu mensaje..." 
+                style={{
+                  flex:1,
+                  padding:'12px 16px',
+                  border:'2px solid #e2e8f0',
+                  borderRadius:'12px',
+                  outline:'none',
+                  fontSize:'14px',
+                  transition:'border 0.2s'
+                }} 
+                onFocus={(e) => e.target.style.borderColor = '#667eea'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+              />
+              <button 
+                onClick={sendMessage} 
+                style={{
+                  padding:'12px',
+                  background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color:'white',
+                  borderRadius:'12px',
+                  border:'none',
+                  cursor:'pointer',
+                  display:'flex',
+                  alignItems:'center',
+                  justifyContent:'center',
+                  minWidth:'48px',
+                  transition:'transform 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <Send size={20} /></button>
             </div>
           </div>
         </div>

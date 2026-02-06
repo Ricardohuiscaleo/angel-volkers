@@ -6,7 +6,9 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const { message, sessionId } = await request.json();
 
-    const response = await fetch(`${process.env.N8N_WEBHOOK_URL}/webhook/chat-inmobiliario`, {
+    const webhookUrl = import.meta.env.N8N_WEBHOOK_URL || process.env.N8N_WEBHOOK_URL || 'https://proyecto1-n8n.dj3bvg.easypanel.host/webhook/chat-inmobiliario';
+
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

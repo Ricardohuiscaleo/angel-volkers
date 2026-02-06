@@ -36,3 +36,5 @@ prisma/migrations/
 scrape-engelvolkers.ts
 seed-properties.ts
 PropertyCard.tsx
+.env
+.env.local
