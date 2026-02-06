@@ -76,6 +76,17 @@ export const POST: APIRoute = async ({ request }) => {
       }
     });
 
+    // Notificar en tiempo real
+    try {
+      await fetch(new URL('/api/notifications', request.url), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'new_lead', lead })
+      });
+    } catch (e) {
+      console.warn('Error sending notification:', e);
+    }
+
     return new Response(JSON.stringify(lead), {
       status: 201,
       headers: { 'Content-Type': 'application/json' }

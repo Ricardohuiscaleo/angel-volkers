@@ -102,7 +102,15 @@ try {
       <!-- Dashboard Tab -->
       <div id="dashboard-tab" class="tab-content">
         <div class="p-8">
-          <h2 class="text-3xl font-bold text-gray-900 mb-6">Dashboard</h2>
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">Dashboard</h2>
+            <button id="enableNotifications" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+              </svg>
+              Activar Notificaciones
+            </button>
+          </div>
           
           <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <div class="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/60 hover:shadow-xl transition-all duration-300">
@@ -450,6 +458,54 @@ try {
     }
 
     loadLeads();
+
+    // Notificaciones en tiempo real con SSE
+    let notificationsEnabled = false;
+    let eventSource: EventSource | null = null;
+
+    async function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        notificationsEnabled = permission === 'granted';
+      } else if (Notification.permission === 'granted') {
+        notificationsEnabled = true;
+      }
+    }
+
+    function connectSSE() {
+      eventSource = new EventSource('/api/notifications');
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'new_lead' && notificationsEnabled) {
+          const lead = data.lead;
+          new Notification('🎯 Nuevo Lead Capturado', {
+            body: `${lead.name} - ${lead.email}\nScore: ${lead.score}`,
+            icon: '/favicon.svg',
+            tag: lead.id
+          });
+          loadLeads();
+        }
+      };
+      
+      eventSource.onerror = () => {
+        eventSource?.close();
+        setTimeout(connectSSE, 5000);
+      };
+    }
+
+    requestNotificationPermission();
+    connectSSE();
+
+    document.getElementById('enableNotifications')?.addEventListener('click', async () => {
+      await requestNotificationPermission();
+      if (notificationsEnabled) {
+        alert('✅ Notificaciones activadas. Recibirás alertas de nuevos leads.');
+      } else {
+        alert('❌ Permiso denegado. Activa las notificaciones en la configuración del navegador.');
+      }
+    });
 
     // Actualizar lead al cambiar score o status
     document.addEventListener('change', async (e) => {
