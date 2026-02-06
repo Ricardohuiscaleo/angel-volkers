@@ -97,7 +97,20 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
   .branding--text,
   .branding,
   [class*="branding"],
-  a[href*="chatwoot.com"] {
+  a[href*="chatwoot.com"],
+  img[alt="Chatwoot"],
+  img[src*="logo_thumbnail"],
+  img[src*="brand-assets"],
+  span:has(> img[alt="Chatwoot"]),
+  div:has(> span:has(> img[alt="Chatwoot"])),
+  footer[class*="footer"] {
+    display: none !important;
+  }
+  
+  /* Ocultar cualquier elemento que contenga el texto "Desarrollado por Chatwoot" */
+  *:has(> span):has-text("Desarrollado por Chatwoot"),
+  span:contains("Desarrollado por Chatwoot"),
+  div:contains("Desarrollado por Chatwoot") {
     display: none !important;
   }
 </style>
