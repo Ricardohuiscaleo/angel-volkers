@@ -1,6 +1,5 @@
 ---
 // src/layouts/Layout.astro
-import ChatWidget from '../../ChatWidget.tsx';
 
 interface Props {
   title: string;
@@ -37,7 +36,28 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
       <slot />
     </main>
 
-    <ChatWidget client:load />
+    <script>
+      window.chatwootSettings = {
+        hideMessageBubble: false,
+        position: 'right',
+        locale: 'es',
+        type: 'standard'
+      };
+      (function(d,t) {
+        var BASE_URL="https://chatwoot.agenterag.com";
+        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+        g.src=BASE_URL+"/packs/js/sdk.js";
+        g.defer = true;
+        g.async = true;
+        s.parentNode.insertBefore(g,s);
+        g.onload=function(){
+          window.chatwootSDK.run({
+            websiteToken: 'qaQdmbHP9zd4uqt5FAjDcUUr',
+            baseUrl: BASE_URL
+          })
+        }
+      })(document,"script");
+    </script>
 
     <footer class="bg-gray-900 text-white py-12 mt-20">
       <div class="container mx-auto px-4">
