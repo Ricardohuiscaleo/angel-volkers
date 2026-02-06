@@ -51,6 +51,24 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
           })
         }
       })(document,"script");
+      
+      // Eliminar branding de Chatwoot
+      function removeChatwootBranding() {
+        const branding = document.querySelector('.branding--link');
+        if (branding) {
+          const parent = branding.closest('div');
+          if (parent) parent.remove();
+        }
+      }
+      
+      // Ejecutar múltiples veces para asegurar que se elimine
+      setTimeout(removeChatwootBranding, 1000);
+      setTimeout(removeChatwootBranding, 2000);
+      setTimeout(removeChatwootBranding, 3000);
+      
+      // Observer para eliminar si se vuelve a agregar
+      const observer = new MutationObserver(removeChatwootBranding);
+      observer.observe(document.body, { childList: true, subtree: true });
     </script>
 
     <footer class="bg-gray-900 text-white py-12 mt-20">
