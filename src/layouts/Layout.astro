@@ -37,38 +37,7 @@ const { title, description = 'Encuentra tu propiedad ideal en Chile' } = Astro.p
       <slot />
     </main>
 
-    <!-- <ChatWidget client:load /> -->
-
-    <style>
-      /* Ocultar branding de Chatwoot */
-      .branding--link,
-      .branding,
-      [class*="branding"],
-      a[href*="chatwoot.com"] {
-        display: none !important;
-      }
-    </style>
-
-    <script is:inline>
-      (function(d,t) {
-        var BASE_URL="https://chatwoot.agenterag.com";
-        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
-        g.src=BASE_URL+"/packs/js/sdk.js";
-        g.defer = true;
-        g.async = true;
-        g.onload=function(){
-          window.chatwootSDK.run({
-            websiteToken: 'qaQdmbHP9zd4uqt5FAjDcUUr',
-            baseUrl: BASE_URL,
-            locale: 'es',
-            position: 'right',
-            launcherTitle: 'Sofía - Asesora Inmobiliaria',
-            darkMode: 'auto'
-          });
-        }
-        s.parentNode.insertBefore(g,s);
-      })(document,"script");
-    </script>
+    <ChatWidget client:load />
 
     <footer class="bg-gray-900 text-white py-12 mt-20">
       <div class="container mx-auto px-4">
